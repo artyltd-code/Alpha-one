@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="#020617"/>
+  <rect x="28" y="28" width="456" height="456" rx="92" fill="none" stroke="url(#g)" stroke-width="10"/>
+  <path d="M256 90 L394 410 H324 L296 340 H214 L186 410 H118 L256 90 Z M236 286 H274 L255 236 Z" fill="url(#g)"/>
+  <text x="256" y="462" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#f8fafc">ALPHA ONE</text>
+</svg>
