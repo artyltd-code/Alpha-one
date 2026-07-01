@@ -1,0 +1,1 @@
+const AlphaStorage={key:"alphaOne.v2.portfolio",load(){try{return JSON.parse(localStorage.getItem(this.key))||[]}catch{return[]}},save(stocks){localStorage.setItem(this.key,JSON.stringify(stocks))},clear(){localStorage.removeItem(this.key)}};
