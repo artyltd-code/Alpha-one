@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
-  <title>Alpha One 2.1</title>
+  <title>Alpha One 2.2</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -28,9 +28,9 @@
         <small id="assetSubtext">0 檔持股</small>
       </div>
       <div class="hero-pnl">
-        <span>未實現損益</span>
-        <strong id="totalPnl">NT$0</strong>
-        <small id="totalRoi">0.00%</small>
+        <span>總投資損益</span>
+        <strong id="grandPnl">NT$0</strong>
+        <small id="grandRoi">0.00%</small>
       </div>
     </section>
 
@@ -40,10 +40,10 @@
         <span class="status-pill">LIVE</span>
       </div>
       <div class="war-grid">
+        <article><span>未實現損益</span><strong id="unrealizedPnl">NT$0</strong></article>
+        <article><span>已實現損益</span><strong id="realizedPnl">NT$0</strong></article>
+        <article><span>累計股息</span><strong id="dividendTotal">NT$0</strong></article>
         <article><span>總成本</span><strong id="totalCost">NT$0</strong></article>
-        <article><span>今日最強</span><strong id="bestStock">—</strong></article>
-        <article><span>今日最弱</span><strong id="worstStock">—</strong></article>
-        <article><span>收藏持股</span><strong id="favoriteCount">0</strong></article>
       </div>
       <div id="dailyBrief" class="brief-card"></div>
     </section>
@@ -69,7 +69,10 @@
   <section id="holdingsPage" class="page">
     <div class="section-title-row sticky-title">
       <div><span class="eyebrow">PORTFOLIO</span><h2>我的持股</h2></div>
-      <button id="addBtn" class="primary-btn">＋ 新增</button>
+      <div class="header-actions">
+        <button id="bulkImportBtn" class="secondary-btn">批次匯入</button>
+        <button id="addBtn" class="primary-btn">＋ 新增</button>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -97,17 +100,39 @@
     <div id="holdingsList" class="holding-list"></div>
   </section>
 
-  <section id="tradesPage" class="page">
+  <section id="ledgerPage" class="page">
     <div class="section-title-row">
-      <div><span class="eyebrow">TRADES</span><h2>交易紀錄</h2></div>
-      <button id="addTradeBtn" class="primary-btn">＋ 新增交易</button>
+      <div><span class="eyebrow">LEDGER</span><h2>投資帳本</h2></div>
+      <div class="header-actions">
+        <button id="addDividendBtn" class="secondary-btn">＋ 股息</button>
+        <button id="addTradeBtn" class="primary-btn">＋ 交易</button>
+      </div>
     </div>
-    <div class="trade-summary">
-      <article><span>交易筆數</span><strong id="tradeCount">0</strong></article>
-      <article><span>累計買進</span><strong id="totalBuy">NT$0</strong></article>
-      <article><span>累計賣出</span><strong id="totalSell">NT$0</strong></article>
+
+    <div class="ledger-tabs">
+      <button class="ledger-tab active" data-ledger="tradesPanel">交易紀錄</button>
+      <button class="ledger-tab" data-ledger="dividendsPanel">股息紀錄</button>
     </div>
-    <div id="tradeList" class="trade-list"></div>
+
+    <section id="tradesPanel" class="ledger-panel active">
+      <div class="trade-summary">
+        <article><span>交易筆數</span><strong id="tradeCount">0</strong></article>
+        <article><span>累計買進</span><strong id="totalBuy">NT$0</strong></article>
+        <article><span>累計賣出</span><strong id="totalSell">NT$0</strong></article>
+        <article><span>已實現損益</span><strong id="realizedPnl2">NT$0</strong></article>
+      </div>
+      <div id="tradeList" class="trade-list"></div>
+    </section>
+
+    <section id="dividendsPanel" class="ledger-panel">
+      <div class="trade-summary">
+        <article><span>股息筆數</span><strong id="dividendCount">0</strong></article>
+        <article><span>累計股息</span><strong id="dividendTotal2">NT$0</strong></article>
+        <article><span>今年股息</span><strong id="yearDividend">NT$0</strong></article>
+        <article><span>本月股息</span><strong id="monthDividend">NT$0</strong></article>
+      </div>
+      <div id="dividendList" class="trade-list"></div>
+    </section>
   </section>
 
   <section id="aiPage" class="page">
@@ -116,7 +141,7 @@
     </div>
     <div id="aiSummary" class="ai-summary"></div>
     <div id="aiBuckets" class="ai-buckets"></div>
-    <div class="info-callout">目前建議由報酬率、今日漲跌、分類與集中度規則產生，仍不是投資保證。</div>
+    <div class="info-callout">目前建議由報酬率、今日漲跌、分類、集中度與交易結果規則產生，仍不是投資保證。</div>
   </section>
 
   <section id="settingsPage" class="page">
@@ -128,6 +153,7 @@
       <div class="action-grid">
         <button id="exportBtn" class="secondary-btn">匯出備份</button>
         <button id="importBtn" class="secondary-btn">匯入備份</button>
+        <button id="rebuildBtn" class="secondary-btn">依交易重建庫存</button>
         <button id="sampleBtn" class="secondary-btn">載入示範</button>
         <button id="clearBtn" class="danger-btn">清空資料</button>
         <input id="importFile" type="file" accept=".json,application/json" hidden>
@@ -139,7 +165,7 @@
 <nav class="bottom-nav">
   <button class="nav-btn active" data-page="homePage"><span>⌂</span><small>首頁</small></button>
   <button class="nav-btn" data-page="holdingsPage"><span>▤</span><small>持股</small></button>
-  <button class="nav-btn" data-page="tradesPage"><span>⇄</span><small>交易</small></button>
+  <button class="nav-btn" data-page="ledgerPage"><span>⇄</span><small>帳本</small></button>
   <button class="nav-btn" data-page="aiPage"><span>✦</span><small>AI</small></button>
   <button class="nav-btn" data-page="settingsPage"><span>⚙</span><small>設定</small></button>
 </nav>
@@ -174,7 +200,7 @@
       <button type="button" id="closeTradeDialog" class="close-btn">✕</button>
     </div>
     <label>交易日期<input id="tradeDate" type="date" required></label>
-    <label>股票代號<input id="tradeSymbol" required placeholder="例：00919"></label>
+    <label>股票代號<input id="tradeSymbol" required></label>
     <label>股票名稱<input id="tradeName"></label>
     <label>分類<select id="tradeCategory"><option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option></select></label>
     <label>交易類型<select id="tradeType"><option value="buy">買進</option><option value="sell">賣出</option></select></label>
@@ -184,6 +210,34 @@
     </div>
     <label>手續費<input id="tradeFee" type="number" min="0" step="1" value="0"></label>
     <button class="primary-btn full" type="submit">儲存交易</button>
+  </form>
+</dialog>
+
+<dialog id="dividendDialog">
+  <form id="dividendForm">
+    <div class="dialog-head">
+      <div><h2>新增股息</h2><p>記錄現金股息收入</p></div>
+      <button type="button" id="closeDividendDialog" class="close-btn">✕</button>
+    </div>
+    <label>入帳日期<input id="dividendDate" type="date" required></label>
+    <label>股票代號<input id="dividendSymbol" required></label>
+    <label>股票名稱<input id="dividendName"></label>
+    <label>股息金額<input id="dividendAmount" type="number" min="0" step="1" required></label>
+    <label>備註<input id="dividendNote" placeholder="例：2026 Q2 配息"></label>
+    <button class="primary-btn full" type="submit">儲存股息</button>
+  </form>
+</dialog>
+
+<dialog id="bulkDialog">
+  <form id="bulkForm">
+    <div class="dialog-head">
+      <div><h2>批次匯入庫存</h2><p>每行一檔，用逗號或 Tab 分隔</p></div>
+      <button type="button" id="closeBulkDialog" class="close-btn">✕</button>
+    </div>
+    <div class="bulk-help">格式：股票代號、名稱、分類、股數、平均成本、目前價格、今日漲跌幅<br>例：00919,群益台灣精選高息,ETF,127000,21.35,24.10,0.84</div>
+    <textarea id="bulkText" rows="10" placeholder="00919,群益台灣精選高息,ETF,127000,21.35,24.10,0.84"></textarea>
+    <label class="switch-row"><input id="bulkReplace" type="checkbox"><span>匯入前先清空原有庫存</span></label>
+    <button class="primary-btn full" type="submit">開始匯入</button>
   </form>
 </dialog>
 
