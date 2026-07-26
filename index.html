@@ -39,14 +39,65 @@
     <article><span>今日最弱</span><strong id="worstStock">—</strong></article>
   </section>
 
+  <section class="visual-grid">
+    <article class="visual-card">
+      <div class="visual-head">
+        <div><h2>資產配置</h2><p>依市值占比</p></div>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut" id="allocationDonut"><span id="donutCenter">0 檔</span></div>
+        <div id="allocationLegend" class="legend"></div>
+      </div>
+    </article>
+
+    <article class="visual-card">
+      <div class="visual-head">
+        <div><h2>損益分布</h2><p>持股獲利與虧損</p></div>
+      </div>
+      <div class="profit-bars">
+        <div>
+          <div class="bar-label"><span>獲利持股</span><strong id="profitCount">0</strong></div>
+          <div class="bar-track"><span id="profitBar" class="bar-profit"></span></div>
+        </div>
+        <div>
+          <div class="bar-label"><span>虧損持股</span><strong id="lossCount">0</strong></div>
+          <div class="bar-track"><span id="lossBar" class="bar-loss"></span></div>
+        </div>
+      </div>
+      <div id="topMover" class="top-mover"></div>
+    </article>
+  </section>
+
   <section class="section">
     <div class="section-head">
       <div>
         <h2>我的持股</h2>
-        <p>依市值由高至低排列</p>
+        <p>依你選擇的條件排列</p>
       </div>
       <button id="addBtn" class="primary-btn">＋ 新增</button>
     </div>
+
+    <div class="toolbar">
+      <label class="search-box">
+        <span>搜尋</span>
+        <input id="searchInput" placeholder="股票代號或名稱">
+      </label>
+      <label class="sort-box">
+        <span>排序</span>
+        <select id="sortSelect">
+          <option value="value">市值</option>
+          <option value="pnl">損益</option>
+          <option value="roi">報酬率</option>
+          <option value="symbol">股票代號</option>
+          <option value="dayChange">今日漲跌</option>
+        </select>
+      </label>
+      <label class="favorite-toggle">
+        <input id="favoriteOnly" type="checkbox">
+        <span>只看收藏</span>
+      </label>
+    </div>
+
     <div id="filterBar" class="chips">
       <button class="chip active" data-category="全部">全部</button>
       <button class="chip" data-category="ETF">ETF</button>
@@ -55,6 +106,7 @@
       <button class="chip" data-category="傳產">傳產</button>
       <button class="chip" data-category="其他">其他</button>
     </div>
+
     <div id="holdingsList" class="holding-list"></div>
   </section>
 
@@ -100,6 +152,10 @@
       <label>目前價格<input id="price" type="number" min="0" step="0.01" value="0"></label>
       <label>今日漲跌幅<input id="dayChange" type="number" step="0.01" value="0"></label>
     </div>
+    <label class="favorite-field">
+      <input id="favorite" type="checkbox">
+      <span>加入收藏</span>
+    </label>
     <button type="submit" class="primary-btn full">儲存持股</button>
   </form>
 </dialog>
