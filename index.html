@@ -1,55 +1,111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
   <title>Alpha One</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#020617" />
-  <link rel="apple-touch-icon" href="assets/icon-192.svg" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div><h1>Alpha One</h1><p>台股持股損益工具</p></div>
-    <button id="refreshBtn" class="primary-btn">更新價格</button>
-  </header>
-  <main class="container">
-    <section class="summary-grid">
-      <article class="summary-card"><span>總成本</span><strong id="totalCost">NT$0</strong></article>
-      <article class="summary-card"><span>總市值</span><strong id="totalValue" class="blue">NT$0</strong></article>
-      <article class="summary-card"><span>總損益</span><strong id="totalPnl">NT$0</strong></article>
-      <article class="summary-card"><span>報酬率</span><strong id="totalRoi">0.00%</strong></article>
-    </section>
-    <section class="panel">
-      <div class="panel-title"><h2>新增持股</h2><span id="status">資料會存在這台裝置的瀏覽器</span></div>
-      <form id="stockForm" class="stock-form">
-        <label>股票代號<input id="symbolInput" placeholder="例：00919、2330" autocomplete="off" required /></label>
-        <label>股數<input id="sharesInput" type="number" inputmode="numeric" placeholder="例：127000" required /></label>
-        <label>平均成本<input id="costInput" type="number" inputmode="decimal" step="0.01" placeholder="例：21.35" required /></label>
-        <label>目前價格<input id="priceInput" type="number" inputmode="decimal" step="0.01" placeholder="可先填 0" value="0" /></label>
-        <button class="primary-btn" type="submit">加入</button>
-      </form>
-      <div class="actions">
-        <button id="exportBtn" class="ghost-btn" type="button">匯出備份</button>
-        <button id="importBtn" class="ghost-btn" type="button">匯入備份</button>
-        <button id="clearBtn" class="danger-btn" type="button">清空</button>
-        <input id="importFile" type="file" accept="application/json" hidden />
+<header class="hero">
+  <div>
+    <div class="brand-kicker">PERSONAL INVESTMENT OS</div>
+    <h1>Alpha One</h1>
+    <p id="todayText"></p>
+  </div>
+  <button id="refreshBtn" class="icon-btn" aria-label="更新股價">↻</button>
+</header>
+
+<main>
+  <section class="headline-card">
+    <div>
+      <span>目前總資產</span>
+      <strong id="totalValue">NT$0</strong>
+    </div>
+    <div class="headline-pnl">
+      <span>未實現損益</span>
+      <strong id="totalPnl">NT$0</strong>
+      <small id="totalRoi">0.00%</small>
+    </div>
+  </section>
+
+  <section class="quick-grid">
+    <article><span>總成本</span><strong id="totalCost">NT$0</strong></article>
+    <article><span>持股檔數</span><strong id="holdingCount">0</strong></article>
+    <article><span>今日最強</span><strong id="bestStock">—</strong></article>
+    <article><span>今日最弱</span><strong id="worstStock">—</strong></article>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h2>我的持股</h2>
+        <p>依市值由高至低排列</p>
       </div>
-    </section>
-    <section class="panel">
-      <div class="panel-title"><h2>我的持股</h2><span id="stockCount">0 檔</span></div>
-      <div id="emptyState" class="empty-state">先新增一檔股票。之後按「更新價格」就會自動抓目前價格。</div>
-      <div class="table-wrap">
-        <table id="portfolioTable" hidden>
-          <thead><tr><th>股票</th><th>股數</th><th>成本</th><th>現價</th><th>成本金額</th><th>市值</th><th>損益</th><th>報酬率</th><th>更新時間</th><th></th></tr></thead>
-          <tbody id="portfolioBody"></tbody>
-        </table>
+      <button id="addBtn" class="primary-btn">＋ 新增</button>
+    </div>
+    <div id="filterBar" class="chips">
+      <button class="chip active" data-category="全部">全部</button>
+      <button class="chip" data-category="ETF">ETF</button>
+      <button class="chip" data-category="金融">金融</button>
+      <button class="chip" data-category="科技">科技</button>
+      <button class="chip" data-category="傳產">傳產</button>
+      <button class="chip" data-category="其他">其他</button>
+    </div>
+    <div id="holdingsList" class="holding-list"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h2>資料管理</h2>
+        <p>資料儲存在目前裝置</p>
       </div>
-    </section>
-  </main>
-  <script src="js/storage.js"></script>
-  <script src="js/market.js"></script>
-  <script src="js/app.js"></script>
+    </div>
+    <div class="action-grid">
+      <button id="exportBtn" class="secondary-btn">匯出備份</button>
+      <button id="importBtn" class="secondary-btn">匯入備份</button>
+      <button id="sampleBtn" class="secondary-btn">載入示範</button>
+      <button id="clearBtn" class="danger-btn">清空資料</button>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </div>
+  </section>
+</main>
+
+<dialog id="stockDialog">
+  <form id="stockForm">
+    <div class="dialog-head">
+      <div>
+        <h2 id="dialogTitle">新增持股</h2>
+        <p>輸入目前庫存資料</p>
+      </div>
+      <button class="close-btn" type="button" id="closeDialog">✕</button>
+    </div>
+    <input id="stockId" type="hidden">
+    <label>股票代號<input id="symbol" required placeholder="例：00919"></label>
+    <label>股票名稱<input id="name" placeholder="例：群益台灣精選高息"></label>
+    <label>分類
+      <select id="category">
+        <option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option>
+      </select>
+    </label>
+    <div class="two-col">
+      <label>持有股數<input id="shares" type="number" min="0" step="1" required></label>
+      <label>平均成本<input id="cost" type="number" min="0" step="0.01" required></label>
+    </div>
+    <div class="two-col">
+      <label>目前價格<input id="price" type="number" min="0" step="0.01" value="0"></label>
+      <label>今日漲跌幅<input id="dayChange" type="number" step="0.01" value="0"></label>
+    </div>
+    <button type="submit" class="primary-btn full">儲存持股</button>
+  </form>
+</dialog>
+
+<div id="toast" class="toast"></div>
+<script src="js/app.js"></script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js");</script>
 </body>
 </html>
