@@ -1,165 +1,78 @@
-const KEY="alphaOneV22";
-let state=load();
-let currentCategory="全部",currentSort="score",currentSearch="",favoriteOnly=false;
+const KEY="alphaOneV30";
+let state=load(),pending=[],currentCategory="全部",currentSort="value",currentSearch="",currentDetailId=null;
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("zh-TW",{style:"currency",currency:"TWD",maximumFractionDigits:0}).format(Number(n)||0);
 const num=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:2}).format(Number(n)||0);
 const pct=n=>`${(Number(n)||0).toFixed(2)}%`;
 const uid=()=>crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-function load(){
-  try{
-    const current=JSON.parse(localStorage.getItem(KEY));
-    if(current&&Array.isArray(current.stocks)&&Array.isArray(current.trades)&&Array.isArray(current.history)&&Array.isArray(current.dividends))return current;
-    const v21=JSON.parse(localStorage.getItem("alphaOneV21"));
-    if(v21&&Array.isArray(v21.stocks))return{stocks:v21.stocks,trades:v21.trades||[],history:v21.history||[],dividends:[]};
-    for(const k of["alphaOneV20","alphaOneV13","alphaOneV12"]){
-      const old=JSON.parse(localStorage.getItem(k));
-      if(Array.isArray(old))return{stocks:old.map(s=>({...s,favorite:!!s.favorite})),trades:[],history:[],dividends:[]};
-    }
-    return{stocks:[],trades:[],history:[],dividends:[]};
-  }catch{return{stocks:[],trades:[],history:[],dividends:[]}}
-}
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function normalize(v){return{stocks:(v.stocks||[]).map(s=>({...s,favorite:!!s.favorite,reason:s.reason||"",risk:s.risk||""})),trades:v.trades||[],history:v.history||[],dividends:v.dividends||[]}}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v?.stocks)return normalize(v);for(const k of["alphaOneV24","alphaOneV23","alphaOneV22","alphaOneV21"]){const o=JSON.parse(localStorage.getItem(k));if(o?.stocks)return normalize(o)}}catch{}return{stocks:[],trades:[],history:[],dividends:[]}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
 function cls(v){return v>0?"gain":v<0?"loss":"flat"}
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
-$("todayText").textContent=new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"long"}).format(new Date());
-
-document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
-  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active");$(b.dataset.page).classList.add("active");scrollTo({top:0,behavior:"smooth"});
-});
-document.querySelectorAll(".ledger-tab").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".ledger-tab").forEach(x=>x.classList.remove("active"));
-  document.querySelectorAll(".ledger-panel").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active");$(b.dataset.ledger).classList.add("active");
-});
-$("goHoldings").onclick=()=>document.querySelector('[data-page="holdingsPage"]').click();
-
-function alphaScore(s){
-  let score=60;
-  score+=Math.max(-20,Math.min(20,s.roi*0.7));
-  score+=Math.max(-10,Math.min(10,s.dayChange*2));
-  if(s.favorite)score+=4;
-  if(s.category==="ETF")score+=5;
-  if(s.category==="金融")score+=3;
-  return Math.round(Math.max(0,Math.min(100,score)));
-}
-function calc(s){const totalCost=s.shares*s.cost,value=s.shares*s.price,pnl=value-totalCost,roi=totalCost?pnl/totalCost*100:0;const base={...s,totalCost,value,pnl,roi};return{...base,score:alphaScore(base)}}
-function totals(all){const totalCost=all.reduce((a,x)=>a+x.totalCost,0),totalValue=all.reduce((a,x)=>a+x.value,0);return{totalCost,totalValue,pnl:totalValue-totalCost,roi:totalCost?(totalValue-totalCost)/totalCost*100:0}}
-function realizedTotal(){return state.trades.reduce((sum,t)=>sum+Number(t.realized||0),0)}
-function dividendTotal(){return state.dividends.reduce((sum,d)=>sum+Number(d.amount||0),0)}
-function sortList(list){return [...list].sort((a,b)=>currentSort==="symbol"?a.symbol.localeCompare(b.symbol,"zh-Hant"):(b[currentSort]||0)-(a[currentSort]||0))}
+function alphaScore(s){let v=60+Math.max(-20,Math.min(20,s.roi*.7))+Math.max(-10,Math.min(10,(s.dayChange||0)*2));if(s.favorite)v+=4;if(s.category==="ETF")v+=5;if(s.category==="金融")v+=3;return Math.round(Math.max(0,Math.min(100,v)))}
+function calc(s){const totalCost=s.shares*s.cost,value=s.shares*s.price,pnl=value-totalCost,roi=totalCost?pnl/totalCost*100:0;const b={...s,totalCost,value,pnl,roi};return{...b,score:alphaScore(b)}}
+function allStocks(){return state.stocks.map(calc)}
+function totals(a){const totalCost=a.reduce((x,s)=>x+s.totalCost,0),totalValue=a.reduce((x,s)=>x+s.value,0);return{totalCost,totalValue,pnl:totalValue-totalCost,roi:totalCost?(totalValue-totalCost)/totalCost*100:0}}
+function realized(){return state.trades.reduce((a,t)=>a+Number(t.realized||0),0)}
+function dividends(){return state.dividends.reduce((a,d)=>a+Number(d.amount||0),0)}
+function go(page,title){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===page));document.querySelectorAll(".nav-btn").forEach(x=>x.classList.toggle("active",x.dataset.page===page));$("pageTitle").textContent=title||document.querySelector(`[data-page="${page}"]`)?.dataset.title||"Alpha One";scrollTo({top:0,behavior:"smooth"})}
+document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>go(b.dataset.page,b.dataset.title));
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go,"我的持股"));
+document.querySelectorAll(".ledger-tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".ledger-tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".ledger-panel").forEach(x=>x.classList.remove("active"));b.classList.add("active");$(b.dataset.ledger).classList.add("active")});
 
 function render(){
-  const all=state.stocks.map(calc),t=totals(all),realized=realizedTotal(),divs=dividendTotal();
-  const grand=t.pnl+realized+divs,grandBase=t.totalCost||1;
-  $("totalValue").textContent=money(t.totalValue);$("assetSubtext").textContent=`${all.length} 檔持股`;
-  $("grandPnl").textContent=money(grand);$("grandPnl").className=cls(grand);$("grandRoi").textContent=pct(grand/grandBase*100);$("grandRoi").className=cls(grand);
-  $("unrealizedPnl").textContent=money(t.pnl);$("unrealizedPnl").className=cls(t.pnl);
-  $("realizedPnl").textContent=money(realized);$("realizedPnl").className=cls(realized);
-  $("dividendTotal").textContent=money(divs);$("totalCost").textContent=money(t.totalCost);
-  renderBrief(all,t,realized,divs);renderHistory();renderScores(all);renderHoldings(all);renderTrades();renderDividends();renderAI(all,realized,divs);
+  const all=allStocks(),t=totals(all),r=realized(),d=dividends(),grand=t.pnl+r+d;
+  $("totalValue").textContent=money(t.totalValue);$("holdingCount").textContent=`${all.length} 檔持股`;
+  $("grandPnl").textContent=money(grand);$("grandPnl").className=cls(grand);$("grandRoi").textContent=pct(grand/(t.totalCost||1)*100);$("grandRoi").className=cls(grand);
+  $("unrealizedPnl").textContent=money(t.pnl);$("unrealizedPnl").className=cls(t.pnl);$("realizedPnl").textContent=money(r);$("realizedPnl").className=cls(r);$("dividendTotal").textContent=money(d);$("totalCost").textContent=money(t.totalCost);
+  renderBrief(all,t);renderTop(all);renderHistory();renderHoldings(all);renderTrades();renderDividends();renderPreview();if(currentDetailId)renderDetail()
 }
-function renderBrief(all,t,realized,divs){
-  if(!all.length){$("dailyBrief").innerHTML="尚未建立持股。先新增庫存、交易或批次匯入，Alpha One 才能產生摘要。";return}
-  const top=[...all].sort((a,b)=>b.score-a.score)[0],weak=[...all].sort((a,b)=>a.score-b.score)[0];
-  const maxValue=Math.max(...all.map(x=>x.value)),concentration=t.totalValue?maxValue/t.totalValue*100:0;
-  const notes=[`未實現損益 ${money(t.pnl)}，已實現損益 ${money(realized)}，累計股息 ${money(divs)}。`,`Alpha Score 最高為 ${top.symbol}（${top.score} 分），最低為 ${weak.symbol}（${weak.score} 分）。`];
-  if(concentration>45)notes.push(`最大單一持股占比約 ${concentration.toFixed(1)}%，集中度偏高。`);
-  $("dailyBrief").innerHTML=notes.join("<br>");
-}
-function renderHistory(){
-  const h=[...state.history].sort((a,b)=>a.date.localeCompare(b.date)).slice(-12);
-  if(!h.length){$("historyChart").innerHTML='<div class="empty" style="width:100%">尚無資產快照</div>';$("historyStats").innerHTML="";return}
-  const values=h.map(x=>x.value),min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min);
-  $("historyChart").innerHTML=h.map(x=>`<div class="history-column"><div class="history-bar" style="height:${18+(x.value-min)/range*82}%"></div><div class="history-label">${x.date.slice(5)}</div></div>`).join("");
-  const first=h[0].value,last=h.at(-1).value,change=last-first,rate=first?change/first*100:0;
-  $("historyStats").innerHTML=`<div><span>起始資產</span><strong>${money(first)}</strong></div><div><span>目前資產</span><strong>${money(last)}</strong></div><div><span>期間變化</span><strong class="${cls(change)}">${money(change)}｜${pct(rate)}</strong></div>`;
-}
-$("snapshotBtn").onclick=()=>{
-  const all=state.stocks.map(calc),t=totals(all),date=new Date().toISOString().slice(0,10);
-  state.history=state.history.filter(x=>x.date!==date);
-  state.history.push({date,value:t.totalValue,cost:t.totalCost,pnl:t.pnl,realized:realizedTotal(),dividends:dividendTotal()});
-  save();toast("今日資產快照已記錄");
-};
-function renderScores(all){
-  const top=[...all].sort((a,b)=>b.score-a.score).slice(0,4);
-  $("scoreList").innerHTML=top.length?top.map(x=>`<div class="score-row"><div><strong>${esc(x.symbol)}</strong><div class="stock-name">${esc(x.name||"")}</div></div><div class="score-badge">${x.score}</div><div class="score-meter"><i style="width:${x.score}%"></i></div></div>`).join(""):'<div class="empty">尚無評分資料</div>';
-}
-function renderHoldings(all){
-  let list=all.filter(x=>currentCategory==="全部"||x.category===currentCategory).filter(x=>!favoriteOnly||x.favorite).filter(x=>!currentSearch||x.symbol.toLowerCase().includes(currentSearch)||String(x.name||"").toLowerCase().includes(currentSearch));
-  list=sortList(list);
-  $("holdingsList").innerHTML=list.length?list.map(s=>`<article class="holding-card">
-    <div class="holding-top">
-      <div class="stock-title"><button class="favorite-btn ${s.favorite?"active":""}" data-favorite="${s.id}">${s.favorite?"★":"☆"}</button><div><div class="stock-symbol">${esc(s.symbol)}</div><div class="stock-name">${esc(s.name||"")}</div><span class="category">${esc(s.category||"其他")}</span></div></div>
-      <div class="stock-pnl"><strong class="${cls(s.pnl)}">${money(s.pnl)}</strong><span class="${cls(s.roi)}">${pct(s.roi)}</span><div class="score-inline">Alpha Score ${s.score}</div></div>
-    </div>
-    <div class="holding-metrics">
-      <div><span>持有股數</span><strong>${num(s.shares)}</strong></div><div><span>平均成本</span><strong>${num(s.cost)}</strong></div><div><span>目前價格</span><strong>${num(s.price)}</strong></div><div><span>今日漲跌</span><strong class="${cls(s.dayChange)}">${pct(s.dayChange)}</strong></div>
-    </div>
-    <div class="holding-actions"><button class="mini-btn edit" data-id="${s.id}">修改</button><button class="mini-btn delete" data-id="${s.id}">刪除</button></div>
-  </article>`).join(""):'<div class="empty">沒有符合條件的持股。</div>';
-  document.querySelectorAll("[data-favorite]").forEach(b=>b.onclick=()=>{state.stocks=state.stocks.map(x=>x.id===b.dataset.favorite?{...x,favorite:!x.favorite}:x);save()});
-  document.querySelectorAll(".edit").forEach(b=>b.onclick=()=>openDialog(state.stocks.find(x=>x.id===b.dataset.id)));
-  document.querySelectorAll(".delete").forEach(b=>b.onclick=()=>{if(confirm("確定刪除這筆持股？")){state.stocks=state.stocks.filter(x=>x.id!==b.dataset.id);save()}});
-}
-function renderTrades(){
-  const trades=[...state.trades].sort((a,b)=>b.date.localeCompare(a.date));
-  const buy=trades.filter(x=>x.type==="buy").reduce((a,x)=>a+x.shares*x.price+x.fee,0);
-  const sell=trades.filter(x=>x.type==="sell").reduce((a,x)=>a+x.shares*x.price-x.fee,0);
-  $("tradeCount").textContent=trades.length;$("totalBuy").textContent=money(buy);$("totalSell").textContent=money(sell);$("realizedPnl2").textContent=money(realizedTotal());$("realizedPnl2").className=cls(realizedTotal());
-  $("tradeList").innerHTML=trades.length?trades.map(t=>`<article class="trade-card">
-    <div class="trade-top"><div><div class="stock-symbol">${esc(t.symbol)}</div><div class="stock-name">${esc(t.name||"")}</div><span class="trade-type ${t.type==="sell"?"sell":""}">${t.type==="buy"?"買進":"賣出"}</span></div><strong>${esc(t.date)}</strong></div>
-    <div class="trade-metrics"><div><span>股數</span><strong>${num(t.shares)}</strong></div><div><span>成交價</span><strong>${num(t.price)}</strong></div><div><span>手續費</span><strong>${money(t.fee)}</strong></div><div><span>${t.type==="sell"?"已實現損益":"交易金額"}</span><strong class="${t.type==="sell"?cls(t.realized):""}">${t.type==="sell"?money(t.realized):money(t.shares*t.price+t.fee)}</strong></div></div>
-    <div class="trade-actions"><button class="mini-btn delete" data-trade-delete="${t.id}">刪除紀錄</button></div>
-  </article>`).join(""):'<div class="empty">尚無交易紀錄</div>';
-  document.querySelectorAll("[data-trade-delete]").forEach(b=>b.onclick=()=>{if(confirm("刪除交易紀錄不會回復庫存，確定？")){state.trades=state.trades.filter(x=>x.id!==b.dataset.tradeDelete);save()}});
-}
-function renderDividends(){
-  const list=[...state.dividends].sort((a,b)=>b.date.localeCompare(a.date)),now=new Date(),year=String(now.getFullYear()),month=now.toISOString().slice(0,7);
-  const total=dividendTotal(),yearTotal=list.filter(x=>x.date.startsWith(year)).reduce((a,x)=>a+x.amount,0),monthTotal=list.filter(x=>x.date.startsWith(month)).reduce((a,x)=>a+x.amount,0);
-  $("dividendCount").textContent=list.length;$("dividendTotal2").textContent=money(total);$("yearDividend").textContent=money(yearTotal);$("monthDividend").textContent=money(monthTotal);
-  $("dividendList").innerHTML=list.length?list.map(d=>`<article class="trade-card">
-    <div class="trade-top"><div><div class="stock-symbol">${esc(d.symbol)}</div><div class="stock-name">${esc(d.name||"")}</div><span class="trade-type dividend">股息</span></div><strong>${esc(d.date)}</strong></div>
-    <div class="trade-metrics"><div><span>股息金額</span><strong>${money(d.amount)}</strong></div><div><span>備註</span><strong>${esc(d.note||"—")}</strong></div></div>
-    <div class="trade-actions"><button class="mini-btn delete" data-dividend-delete="${d.id}">刪除紀錄</button></div>
-  </article>`).join(""):'<div class="empty">尚無股息紀錄</div>';
-  document.querySelectorAll("[data-dividend-delete]").forEach(b=>b.onclick=()=>{if(confirm("確定刪除這筆股息？")){state.dividends=state.dividends.filter(x=>x.id!==b.dataset.dividendDelete);save()}});
-}
-function renderAI(all,realized,divs){
-  const avg=all.length?all.reduce((a,x)=>a+x.score,0)/all.length:0;
-  $("aiSummary").innerHTML=`<span>今日 Alpha 評分</span><strong>${Math.round(avg||0)} 分</strong><small>${avg>=80?"偏多續抱":avg>=65?"中性偏多":"保守觀察"}</small>`;
-  const add=all.filter(x=>x.score>=82).slice(0,4),hold=all.filter(x=>x.score>=65&&x.score<82).slice(0,5),watch=all.filter(x=>x.score<65).slice(0,5),profit=all.filter(x=>x.roi>25).slice(0,5);
-  const card=(title,items)=>`<article class="ai-card"><h3>${title}</h3><ul>${items.length?items.map(x=>`<li>${esc(x.symbol)}｜${x.score} 分</li>`).join(""):"<li>目前沒有符合項目</li>"}</ul></article>`;
-  $("aiBuckets").innerHTML=card("優先關注",add)+card("續抱觀察",hold)+card("風險留意",watch)+card("停利觀察",profit);
-}
-function openDialog(s=null){
-  $("dialogTitle").textContent=s?"修改持股":"新增持股";$("stockId").value=s?.id||"";$("symbol").value=s?.symbol||"";$("name").value=s?.name||"";$("category").value=s?.category||"ETF";$("shares").value=s?.shares??"";$("cost").value=s?.cost??"";$("price").value=s?.price??0;$("dayChange").value=s?.dayChange??0;$("favorite").checked=!!s?.favorite;$("stockDialog").showModal();
-}
-$("addBtn").onclick=()=>openDialog();$("closeDialog").onclick=()=>$("stockDialog").close();
-$("stockForm").onsubmit=e=>{e.preventDefault();const sid=$("stockId").value;const item={id:sid||uid(),symbol:$("symbol").value.trim().toUpperCase(),name:$("name").value.trim(),category:$("category").value,shares:Number($("shares").value),cost:Number($("cost").value),price:Number($("price").value||0),dayChange:Number($("dayChange").value||0),favorite:$("favorite").checked};if(!item.symbol||item.shares<0||item.cost<0||item.price<0)return;const dup=state.stocks.find(x=>x.symbol===item.symbol&&x.id!==sid);if(dup){toast("股票代號已存在");return}state.stocks=sid?state.stocks.map(x=>x.id===sid?item:x):[...state.stocks,item];$("stockDialog").close();save();toast("持股已儲存")};
+function renderBrief(all,t){if(!all.length){$("dailyBrief").textContent="尚未建立持股。可直接新增，或把券商截圖交給我整理成批次匯入格式。";return}const top=[...all].sort((a,b)=>b.score-a.score)[0],weak=[...all].sort((a,b)=>a.score-b.score)[0],max=Math.max(...all.map(x=>x.value)),conc=t.totalValue?max/t.totalValue*100:0;$("dailyBrief").innerHTML=`Alpha Score 最高為 ${top.symbol}（${top.score} 分），最低為 ${weak.symbol}（${weak.score} 分）。<br>目前未實現損益 ${money(t.pnl)}，整體報酬率 ${pct(t.roi)}。${conc>45?`<br>最大單一持股占比約 ${conc.toFixed(1)}%，集中度偏高。`:""}`}
+function renderTop(all){const list=[...all].sort((a,b)=>b.value-a.value).slice(0,4);$("topHoldings").innerHTML=list.length?list.map(s=>`<div class="ios-row" data-open="${s.id}"><div><strong>${esc(s.symbol)}｜${esc(s.name||"")}</strong><small>${esc(s.category)}</small></div><div><small>市值</small><strong>${money(s.value)}</strong></div><div><small>損益</small><strong class="${cls(s.pnl)}">${money(s.pnl)}</strong></div></div>`).join(""):'<div class="empty">尚無持股</div>';bindOpen()}
+function renderHistory(){const h=[...state.history].sort((a,b)=>a.date.localeCompare(b.date)).slice(-12);if(!h.length){$("historyChart").innerHTML='<div class="empty" style="width:100%">尚無資產快照</div>';$("historyStats").innerHTML="";return}const vals=h.map(x=>x.value),min=Math.min(...vals),max=Math.max(...vals),range=Math.max(1,max-min);$("historyChart").innerHTML=h.map(x=>`<div class="spark-col"><div class="spark-bar" style="height:${18+(x.value-min)/range*82}%"></div><div class="spark-label">${x.date.slice(5)}</div></div>`).join("");const first=h[0].value,last=h.at(-1).value,change=last-first;$("historyStats").innerHTML=`<div><span>起始</span><strong>${money(first)}</strong></div><div><span>目前</span><strong>${money(last)}</strong></div><div><span>變化</span><strong class="${cls(change)}">${money(change)}</strong></div>`}
+$("snapshotBtn").onclick=()=>{const t=totals(allStocks()),date=new Date().toISOString().slice(0,10);state.history=state.history.filter(x=>x.date!==date);state.history.push({date,value:t.totalValue,cost:t.totalCost,pnl:t.pnl});save();toast("今日資產快照已記錄")};
 
-$("addTradeBtn").onclick=()=>{$("tradeForm").reset();$("tradeDate").value=new Date().toISOString().slice(0,10);$("tradeFee").value=0;$("tradeDialog").showModal()};
-$("closeTradeDialog").onclick=()=>$("tradeDialog").close();
-$("tradeForm").onsubmit=e=>{e.preventDefault();const t={id:uid(),date:$("tradeDate").value,symbol:$("tradeSymbol").value.trim().toUpperCase(),name:$("tradeName").value.trim(),category:$("tradeCategory").value,type:$("tradeType").value,shares:Number($("tradeShares").value),price:Number($("tradePrice").value),fee:Number($("tradeFee").value||0),realized:0};if(!t.symbol||!t.date||t.shares<=0||t.price<0)return;let h=state.stocks.find(x=>x.symbol===t.symbol);if(t.type==="buy"){if(!h){h={id:uid(),symbol:t.symbol,name:t.name,category:t.category,shares:0,cost:0,price:t.price,dayChange:0,favorite:false};state.stocks.push(h)}const oldCost=h.shares*h.cost,newCost=t.shares*t.price+t.fee;h.cost=(oldCost+newCost)/(h.shares+t.shares);h.shares+=t.shares;h.price=t.price;h.name=h.name||t.name}else{if(!h||h.shares<t.shares){toast("持股不足，無法賣出");return}t.realized=(t.price-h.cost)*t.shares-t.fee;h.shares-=t.shares;h.price=t.price;if(h.shares===0)state.stocks=state.stocks.filter(x=>x.id!==h.id)}state.trades.push(t);$("tradeDialog").close();save();toast("交易已儲存")};
+function renderHoldings(all){let list=all.filter(x=>currentCategory==="全部"||x.category===currentCategory).filter(x=>!currentSearch||x.symbol.toLowerCase().includes(currentSearch)||String(x.name||"").toLowerCase().includes(currentSearch));list=[...list].sort((a,b)=>currentSort==="symbol"?a.symbol.localeCompare(b.symbol,"zh-Hant"):(b[currentSort]||0)-(a[currentSort]||0));$("holdingsList").innerHTML=list.length?list.map(s=>`<article class="holding-card" data-open="${s.id}"><div class="holding-top"><div><div class="stock-symbol">${esc(s.symbol)}</div><div class="stock-name">${esc(s.name||"")}</div><span class="category-pill">${esc(s.category)}</span></div><div class="stock-pnl"><strong class="${cls(s.pnl)}">${money(s.pnl)}</strong><span class="${cls(s.roi)}">${pct(s.roi)}</span></div></div><div class="holding-metrics"><div><span>總股數</span><strong>${num(s.shares)}</strong></div><div><span>均價</span><strong>${num(s.cost)}</strong></div><div><span>現價</span><strong>${num(s.price)}</strong></div><div><span>Alpha</span><strong>${s.score}</strong></div></div><div class="holding-actions"><button class="mini-btn" data-edit="${s.id}">修改</button><button class="mini-btn delete" data-delete="${s.id}">刪除</button></div></article>`).join(""):'<div class="empty">沒有符合條件的持股</div>';bindOpen();document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();openStock(state.stocks.find(x=>x.id===b.dataset.edit))});document.querySelectorAll("[data-delete]").forEach(b=>b.onclick=e=>{e.stopPropagation();if(confirm("確定刪除？")){state.stocks=state.stocks.filter(x=>x.id!==b.dataset.delete);save()}})}
+function bindOpen(){document.querySelectorAll("[data-open]").forEach(x=>x.onclick=()=>openDetail(x.dataset.open))}
+function openDetail(id){currentDetailId=id;renderDetail();$("detailSheet").classList.add("open");document.body.style.overflow="hidden"}
+function closeDetail(){$("detailSheet").classList.remove("open");document.body.style.overflow=""}
+$("closeDetail").onclick=closeDetail;$("sheetBackdrop").onclick=closeDetail;
+function renderDetail(){const s=allStocks().find(x=>x.id===currentDetailId);if(!s)return;$("detailBadge").textContent=s.category==="ETF"?"市":s.category.slice(0,1);$("detailName").textContent=s.name||s.symbol;$("detailSymbol").textContent=s.symbol;$("detailPrice").textContent=num(s.price);$("detailPnl").textContent=money(s.pnl);$("detailPnl").className=cls(s.pnl);$("detailRoi").textContent=pct(s.roi);$("detailRoi").className=cls(s.roi);$("detailCost").textContent=num(s.cost);$("detailShares").textContent=num(s.shares);$("detailTotalCost").textContent=money(s.totalCost);$("detailMarketValue").textContent=money(s.value);$("detailFavorite").textContent=s.favorite?"★":"☆";$("detailScore").textContent=s.score;$("detailScoreBar").style.width=`${s.score}%`;$("detailAdvice").textContent=s.score>=82?"評分偏強，可續抱並觀察合理加碼點。":s.score>=65?"評分中性，先續抱觀察，不追價。":"評分偏弱，應檢查基本面、趨勢與停損條件。";$("detailReason").value=s.reason||"";$("detailRisk").value=s.risk||"";
+const ts=state.trades.filter(x=>x.symbol===s.symbol).sort((a,b)=>a.date.localeCompare(b.date));$("detailTradeList").innerHTML=ts.length?`<div class="trade-row header"><span>成交日</span><span>價格</span><span>數量</span><span>損益／備註</span></div>`+ts.map(t=>`<div class="trade-row"><strong>${esc(t.date.replaceAll("-","/"))}</strong><strong>${num(t.price)}</strong><strong>${num(t.shares)}</strong><strong class="${t.type==="sell"?cls(t.realized):"flat"}">${t.type==="sell"?money(t.realized):esc(t.note||"買進")}</strong></div>`).join(""):'<div class="empty">尚無逐筆交易紀錄</div>';
+const buys=ts.filter(x=>x.type==="buy"),maxShares=Math.max(1,...buys.map(x=>x.shares));$("costDistribution").innerHTML=buys.length?buys.map(t=>`<div class="cost-row"><strong>${num(t.price)}</strong><div class="cost-track"><div class="cost-bar" style="width:${t.shares/maxShares*100}%"></div></div><span>${num(t.shares)}股</span></div>`).join(""):'<div class="empty">尚無買進資料</div>';
+const ds=state.dividends.filter(x=>x.symbol===s.symbol).sort((a,b)=>b.date.localeCompare(a.date));$("detailDividendTotal").textContent=money(ds.reduce((a,x)=>a+x.amount,0));$("detailDividendCount").textContent=ds.length;$("detailDividendList").innerHTML=ds.length?ds.map(d=>`<div class="mini-row"><span>${esc(d.date)}｜${esc(d.note||"股息")}</span><strong>${money(d.amount)}</strong></div>`).join(""):'<div class="empty">尚無股息紀錄</div>'}
+$("detailFavorite").onclick=()=>{const s=state.stocks.find(x=>x.id===currentDetailId);if(s){s.favorite=!s.favorite;save()}};
+$("saveDetailNotes").onclick=()=>{const s=state.stocks.find(x=>x.id===currentDetailId);if(s){s.reason=$("detailReason").value.trim();s.risk=$("detailRisk").value.trim();save();toast("投資筆記已儲存")}};
 
-$("addDividendBtn").onclick=()=>{$("dividendForm").reset();$("dividendDate").value=new Date().toISOString().slice(0,10);$("dividendDialog").showModal()};
-$("closeDividendDialog").onclick=()=>$("dividendDialog").close();
-$("dividendForm").onsubmit=e=>{e.preventDefault();const d={id:uid(),date:$("dividendDate").value,symbol:$("dividendSymbol").value.trim().toUpperCase(),name:$("dividendName").value.trim(),amount:Number($("dividendAmount").value),note:$("dividendNote").value.trim()};if(!d.date||!d.symbol||d.amount<0)return;state.dividends.push(d);$("dividendDialog").close();save();toast("股息已儲存")};
+function openStock(s=null){$("dialogTitle").textContent=s?"修改持股":"新增持股";$("stockId").value=s?.id||"";$("symbol").value=s?.symbol||"";$("name").value=s?.name||"";$("category").value=s?.category||"ETF";$("shares").value=s?.shares??"";$("cost").value=s?.cost??"";$("price").value=s?.price??0;$("dayChange").value=s?.dayChange??0;$("stockDialog").showModal()}
+$("addBtn").onclick=()=>openStock();$("closeStockDialog").onclick=()=>$("stockDialog").close();
+$("stockForm").onsubmit=e=>{e.preventDefault();const id=$("stockId").value,old=state.stocks.find(x=>x.id===id),item={id:id||uid(),symbol:$("symbol").value.trim().toUpperCase(),name:$("name").value.trim(),category:$("category").value,shares:Number($("shares").value),cost:Number($("cost").value),price:Number($("price").value||0),dayChange:Number($("dayChange").value||0),favorite:old?.favorite||false,reason:old?.reason||"",risk:old?.risk||""};state.stocks=id?state.stocks.map(x=>x.id===id?item:x):[...state.stocks,item];$("stockDialog").close();save();toast("持股已儲存")};
 
-$("bulkImportBtn").onclick=()=>{$("bulkForm").reset();$("bulkDialog").showModal()};
-$("closeBulkDialog").onclick=()=>$("bulkDialog").close();
-$("bulkForm").onsubmit=e=>{e.preventDefault();const lines=$("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);const imported=[];for(const line of lines){const cols=line.split(/\t|,/).map(x=>x.trim());if(cols.length<5)continue;const [symbol,name,category,shares,cost,price="0",dayChange="0"]=cols;const item={id:uid(),symbol:symbol.toUpperCase(),name,category:["ETF","金融","科技","傳產","其他"].includes(category)?category:"其他",shares:Number(shares),cost:Number(cost),price:Number(price),dayChange:Number(dayChange),favorite:false};if(item.symbol&&Number.isFinite(item.shares)&&Number.isFinite(item.cost))imported.push(item)}if(!imported.length){toast("沒有可匯入的資料");return}if($("bulkReplace").checked)state.stocks=[];for(const item of imported){const old=state.stocks.find(x=>x.symbol===item.symbol);if(old)Object.assign(old,item,{id:old.id,favorite:old.favorite});else state.stocks.push(item)}$("bulkDialog").close();save();toast(`已匯入 ${imported.length} 檔`)};
+function openTrade(prefill=false){$("tradeForm").reset();$("tradeDate").value=new Date().toISOString().slice(0,10);$("tradeFee").value=0;if(prefill&&currentDetailId){const s=state.stocks.find(x=>x.id===currentDetailId);$("tradeSymbol").value=s.symbol;$("tradeName").value=s.name;$("tradeCategory").value=s.category}$("tradeDialog").showModal()}
+$("addTradeBtn").onclick=()=>openTrade(false);$("detailAddTrade").onclick=()=>openTrade(true);$("closeTradeDialog").onclick=()=>$("tradeDialog").close();
+$("tradeForm").onsubmit=e=>{e.preventDefault();const t={id:uid(),date:$("tradeDate").value,symbol:$("tradeSymbol").value.trim().toUpperCase(),name:$("tradeName").value.trim(),category:$("tradeCategory").value,type:$("tradeType").value,shares:Number($("tradeShares").value),price:Number($("tradePrice").value),fee:Number($("tradeFee").value||0),note:$("tradeNote").value.trim(),realized:0};let h=state.stocks.find(x=>x.symbol===t.symbol);if(t.type==="buy"){if(!h){h={id:uid(),symbol:t.symbol,name:t.name,category:t.category,shares:0,cost:0,price:t.price,dayChange:0,favorite:false,reason:"",risk:""};state.stocks.push(h)}const old=h.shares*h.cost,newc=t.shares*t.price+t.fee;h.cost=(old+newc)/(h.shares+t.shares);h.shares+=t.shares;h.price=t.price}else{if(!h||h.shares<t.shares){toast("持股不足");return}t.realized=(t.price-h.cost)*t.shares-t.fee;h.shares-=t.shares;h.price=t.price;if(h.shares===0)state.stocks=state.stocks.filter(x=>x.id!==h.id)}state.trades.push(t);$("tradeDialog").close();save();toast("交易已儲存")};
 
-$("rebuildBtn").onclick=()=>{if(!state.trades.length){toast("沒有交易紀錄可重建");return}if(!confirm("將依交易紀錄重建庫存，現有手動庫存會被取代，確定？"))return;const rebuilt=[];const sorted=[...state.trades].sort((a,b)=>a.date.localeCompare(b.date));for(const t of sorted){let h=rebuilt.find(x=>x.symbol===t.symbol);if(t.type==="buy"){if(!h){h={id:uid(),symbol:t.symbol,name:t.name,category:t.category||"其他",shares:0,cost:0,price:t.price,dayChange:0,favorite:false};rebuilt.push(h)}const oldCost=h.shares*h.cost,newCost=t.shares*t.price+t.fee;h.cost=(oldCost+newCost)/(h.shares+t.shares);h.shares+=t.shares;h.price=t.price}else if(h&&h.shares>=t.shares){h.shares-=t.shares;h.price=t.price}}state.stocks=rebuilt.filter(x=>x.shares>0);save();toast("庫存已依交易重建")};
+function openDividend(prefill=false){$("dividendForm").reset();$("dividendDate").value=new Date().toISOString().slice(0,10);if(prefill&&currentDetailId){const s=state.stocks.find(x=>x.id===currentDetailId);$("dividendSymbol").value=s.symbol;$("dividendName").value=s.name}$("dividendDialog").showModal()}
+$("addDividendBtn").onclick=()=>openDividend(false);$("detailAddDividend").onclick=()=>openDividend(true);$("closeDividendDialog").onclick=()=>$("dividendDialog").close();
+$("dividendForm").onsubmit=e=>{e.preventDefault();state.dividends.push({id:uid(),date:$("dividendDate").value,symbol:$("dividendSymbol").value.trim().toUpperCase(),name:$("dividendName").value.trim(),amount:Number($("dividendAmount").value),note:$("dividendNote").value.trim()});$("dividendDialog").close();save();toast("股息已儲存")};
 
-document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));c.classList.add("active");currentCategory=c.dataset.category;render()});
-$("searchInput").oninput=e=>{currentSearch=e.target.value.trim().toLowerCase();render()};$("sortSelect").onchange=e=>{currentSort=e.target.value;render()};$("favoriteOnly").onchange=e=>{favoriteOnly=e.target.checked;render()};
-$("refreshBtn").onclick=async()=>{if(!state.stocks.length){toast("目前沒有持股");return}const b=$("refreshBtn");b.disabled=true;b.textContent="…";let ok=0;for(const s of state.stocks){for(const m of["tse","otc"]){try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${m}_${s.symbol}.tw`,{cache:"no-store"});const j=await r.json();const row=j?.msgArray?.[0];if(row){const p=Number(row.z||row.y);if(p>0){s.price=p;s.name=s.name||row.n;ok++;break}}}catch{}}}save();b.disabled=false;b.textContent="↻";toast(`已更新 ${ok} 檔`)};
-$("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify({version:"2.2",...state,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`alpha-one-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)};
-$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j.stocks))throw 0;state={stocks:j.stocks,trades:Array.isArray(j.trades)?j.trades:[],history:Array.isArray(j.history)?j.history:[],dividends:Array.isArray(j.dividends)?j.dividends:[]};save();toast("匯入完成")}catch{toast("備份格式錯誤")}e.target.value=""};
-$("sampleBtn").onclick=()=>{if(state.stocks.length&&!confirm("示範資料會覆蓋目前資料，確定？"))return;state={stocks:[{id:uid(),symbol:"00919",name:"群益台灣精選高息",category:"ETF",shares:127000,cost:21.35,price:24.10,dayChange:.84,favorite:true},{id:uid(),symbol:"0050",name:"元大台灣50",category:"ETF",shares:2000,cost:174.6,price:188.2,dayChange:1.15,favorite:true},{id:uid(),symbol:"2882",name:"國泰金",category:"金融",shares:5000,cost:54.8,price:61.2,dayChange:-.49,favorite:false},{id:uid(),symbol:"3017",name:"奇鋐",category:"科技",shares:300,cost:735,price:812,dayChange:3.42,favorite:true}],trades:[],history:[{date:"2026-07-20",value:10850000,cost:10200000,pnl:650000},{date:"2026-07-22",value:10960000,cost:10250000,pnl:710000},{date:"2026-07-24",value:11120000,cost:10300000,pnl:820000},{date:"2026-07-27",value:11280000,cost:10350000,pnl:930000}],dividends:[{id:uid(),date:"2026-07-15",symbol:"00919",name:"群益台灣精選高息",amount:190500,note:"季度配息"}]};save();toast("示範資料已載入")};
-$("clearBtn").onclick=()=>{if(confirm("確定清空所有資料？")){state={stocks:[],trades:[],history:[],dividends:[]};save();toast("已清空")}};
+function renderTrades(){const list=[...state.trades].sort((a,b)=>b.date.localeCompare(a.date));$("tradeList").innerHTML=list.length?list.map(t=>`<article class="timeline-card"><div class="timeline-head"><div><strong>${esc(t.symbol)}｜${esc(t.name||"")}</strong><div class="stock-name">${t.type==="buy"?"買進":"賣出"}｜${esc(t.date)}</div></div><strong class="${t.type==="sell"?cls(t.realized):""}">${t.type==="sell"?money(t.realized):money(t.shares*t.price+t.fee)}</strong></div><div class="timeline-meta"><div><span>股數</span><strong>${num(t.shares)}</strong></div><div><span>價格</span><strong>${num(t.price)}</strong></div><div><span>手續費</span><strong>${money(t.fee)}</strong></div><div><span>備註</span><strong>${esc(t.note||"—")}</strong></div></div></article>`).join(""):'<div class="empty">尚無交易紀錄</div>'}
+function renderDividends(){const list=[...state.dividends].sort((a,b)=>b.date.localeCompare(a.date));$("dividendList").innerHTML=list.length?list.map(d=>`<article class="timeline-card"><div class="timeline-head"><div><strong>${esc(d.symbol)}｜${esc(d.name||"")}</strong><div class="stock-name">${esc(d.date)}｜${esc(d.note||"股息")}</div></div><strong>${money(d.amount)}</strong></div></article>`).join(""):'<div class="empty">尚無股息紀錄</div>'}
+
+$("analyzeImportBtn").onclick=()=>{pending=$("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{const c=line.split(/\t|,/).map(x=>x.trim());return{symbol:(c[0]||"").toUpperCase(),name:c[1]||"",category:c[2]||"其他",shares:Number(c[3]),cost:Number(c[4]),price:Number(c[5]||0),dayChange:Number(c[6]||0)}});renderPreview();toast(`已分析 ${pending.length} 筆`)};
+function renderPreview(){$("importPreview").innerHTML=pending.length?pending.map(x=>`<div class="preview-item"><strong>${esc(x.symbol)}｜${esc(x.name)}</strong><div class="stock-name">${esc(x.category)}｜${num(x.shares)} 股｜均價 ${num(x.cost)}｜現價 ${num(x.price)}</div></div>`).join(""):'<div class="empty">尚無預覽資料</div>'}
+$("approveImportBtn").onclick=()=>{for(const x of pending){if(!x.symbol||!Number.isFinite(x.shares)||!Number.isFinite(x.cost))continue;const old=state.stocks.find(s=>s.symbol===x.symbol),item={id:old?.id||uid(),...x,favorite:old?.favorite||false,reason:old?.reason||"",risk:old?.risk||""};if(old)Object.assign(old,item);else state.stocks.push(item)}pending=[];$("bulkText").value="";save();toast("匯入完成")};
+
+document.querySelectorAll(".segment[data-category]").forEach(c=>c.onclick=()=>{document.querySelectorAll(".segment[data-category]").forEach(x=>x.classList.remove("active"));c.classList.add("active");currentCategory=c.dataset.category;render()});
+$("searchInput").oninput=e=>{currentSearch=e.target.value.trim().toLowerCase();render()};$("sortSelect").onchange=e=>{currentSort=e.target.value;render()};
+$("refreshBtn").onclick=async()=>{if(!state.stocks.length){toast("目前沒有持股");return}const b=$("refreshBtn");b.disabled=true;b.textContent="…";let ok=0;for(const s of state.stocks){for(const m of["tse","otc"]){try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${m}_${s.symbol}.tw`,{cache:"no-store"});const j=await r.json(),row=j?.msgArray?.[0];if(row){const p=Number(row.z||row.y);if(p>0){s.price=p;s.name=s.name||row.n;ok++;break}}}catch{}}}save();b.disabled=false;b.textContent="↻";toast(`已更新 ${ok} 檔`)};
+
+function download(content,name,type){const a=document.createElement("a"),blob=new Blob(["\ufeff"+content],{type});a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$("exportBtn").onclick=()=>download(JSON.stringify({version:"3.0",...state,exportedAt:new Date().toISOString()},null,2),`alpha-one-${new Date().toISOString().slice(0,10)}.json`,"application/json");
+$("exportCsvBtn").onclick=()=>download(["股票代號,股票名稱,分類,股數,平均成本,目前價格,今日漲跌幅",...state.stocks.map(s=>[s.symbol,s.name,s.category,s.shares,s.cost,s.price,s.dayChange].join(","))].join("\n"),"alpha-one-holdings.csv","text/csv");
+$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=async e=>{try{state=normalize(JSON.parse(await e.target.files[0].text()));save();toast("匯入完成")}catch{toast("備份格式錯誤")}e.target.value=""};
+$("sampleBtn").onclick=()=>{state={stocks:[{id:uid(),symbol:"00400A",name:"主動國泰動能高息",category:"ETF",shares:3000,cost:13.50,price:13.41,dayChange:-.59,favorite:true,reason:"作為主動式高股息 ETF 部位，分批建立。",risk:"跌破 12.8 或策略失效時重新評估。"}],trades:[{id:uid(),date:"2026-05-14",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.91,fee:0,note:"首次建立部位",realized:0},{id:uid(),date:"2026-05-15",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.50,fee:0,note:"第二次加碼",realized:0},{id:uid(),date:"2026-05-19",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:12.78,fee:0,note:"逢低加碼",realized:0},{id:uid(),date:"2026-07-17",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:13.31,fee:0,note:"分批加碼",realized:0}],history:[],dividends:[]};save();toast("示範資料已載入")};
+$("clearBtn").onclick=()=>{if(confirm("確定清空全部資料？")){state={stocks:[],trades:[],history:[],dividends:[]};save()}};
 render();

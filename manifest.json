@@ -1,10 +1,10 @@
 {
-  "name": "Alpha One 2.2",
+  "name": "Alpha One 3.0",
   "short_name": "Alpha One",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#07111f",
-  "theme_color": "#07111f",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
   "icons": [
     {
       "src": "assets/icon.svg",
