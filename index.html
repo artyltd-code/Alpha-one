@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#05070b">
-  <title>Alpha One 3.1</title>
+  <title>Alpha One 3.2</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div>
-      <span class="eyebrow">ALPHA ONE 3.1</span>
+      <span class="eyebrow">ALPHA ONE 3.2</span>
       <h1 id="pageTitle">總覽</h1>
     </div>
     <button id="refreshBtn" class="icon-btn">↻</button>
@@ -143,6 +143,43 @@
       </section>
     </section>
 
+
+    <section id="strategyPage" class="page">
+      <section class="section-card glass">
+        <div class="section-head">
+          <div><span class="eyebrow">TARGET ALLOCATION</span><h2>目標配置</h2></div>
+          <button id="saveTargetsBtn" class="primary-pill">儲存目標</button>
+        </div>
+        <p class="muted">設定希望維持的資產配置。總和不必剛好 100%，系統會自動標示差異。</p>
+        <div id="targetInputs" class="target-grid"></div>
+        <div id="targetTotal" class="target-total"></div>
+      </section>
+
+      <section class="section-card glass">
+        <span class="eyebrow">REBALANCE</span>
+        <h2>再平衡建議</h2>
+        <div id="rebalanceSummary" class="brief"></div>
+        <div id="rebalanceList" class="rebalance-list"></div>
+      </section>
+
+      <section class="section-card glass">
+        <span class="eyebrow">MONTHLY REPORT</span>
+        <h2>月度統計</h2>
+        <div class="month-selector">
+          <button id="prevMonthBtn">‹</button>
+          <strong id="selectedMonthLabel">—</strong>
+          <button id="nextMonthBtn">›</button>
+        </div>
+        <div class="metric-grid monthly-grid">
+          <article class="metric-card glass"><span>買進金額</span><strong id="monthBuy">NT$0</strong></article>
+          <article class="metric-card glass"><span>賣出金額</span><strong id="monthSell">NT$0</strong></article>
+          <article class="metric-card glass"><span>已實現損益</span><strong id="monthRealized">NT$0</strong></article>
+          <article class="metric-card glass"><span>股息收入</span><strong id="monthDividend">NT$0</strong></article>
+        </div>
+        <div id="monthlyActivity" class="timeline"></div>
+      </section>
+    </section>
+
     <section id="ledgerPage" class="page">
       <div class="ledger-actions">
         <button id="addTradeBtn" class="primary-pill">＋ 交易</button>
@@ -192,6 +229,7 @@
     <button class="nav-btn" data-page="holdingsPage" data-title="我的持股"><span>▤</span><small>持股</small></button>
     <button class="nav-btn" data-page="watchlistPage" data-title="自選觀察"><span>☆</span><small>自選</small></button>
     <button class="nav-btn" data-page="analyticsPage" data-title="組合分析"><span>◔</span><small>分析</small></button>
+    <button class="nav-btn" data-page="strategyPage" data-title="策略中心"><span>◎</span><small>策略</small></button>
     <button class="nav-btn" data-page="ledgerPage" data-title="投資帳本"><span>⇄</span><small>帳本</small></button>
     <button class="nav-btn" data-page="importPage" data-title="庫存匯入"><span>⇩</span><small>匯入</small></button>
     <button class="nav-btn" data-page="settingsPage" data-title="資料管理"><span>⚙</span><small>設定</small></button>
