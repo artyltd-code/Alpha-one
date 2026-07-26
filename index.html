@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#05070b">
-  <title>Alpha One 3.2</title>
+  <title>Alpha One 3.3</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div>
-      <span class="eyebrow">ALPHA ONE 3.2</span>
+      <span class="eyebrow">ALPHA ONE 3.3</span>
       <h1 id="pageTitle">總覽</h1>
     </div>
     <button id="refreshBtn" class="icon-btn">↻</button>
@@ -144,6 +144,26 @@
     </section>
 
 
+
+    <section id="alertsPage" class="page">
+      <section class="section-card glass">
+        <div class="section-head">
+          <div><span class="eyebrow">PRICE ALERTS</span><h2>價格提醒</h2></div>
+          <button id="addAlertBtn" class="primary-pill">＋ 提醒</button>
+        </div>
+        <p class="muted">提醒會依目前儲存價格判斷。按右上角更新後，系統會重新檢查是否達標。</p>
+        <div id="alertSummary" class="metric-grid"></div>
+        <div id="alertList" class="holding-stack"></div>
+      </section>
+
+      <section class="section-card glass">
+        <span class="eyebrow">DATA HEALTH</span>
+        <h2>資料健檢</h2>
+        <div id="dataHealthScore" class="health-score"></div>
+        <div id="dataIssues" class="risk-list"></div>
+      </section>
+    </section>
+
     <section id="strategyPage" class="page">
       <section class="section-card glass">
         <div class="section-head">
@@ -229,6 +249,7 @@
     <button class="nav-btn" data-page="holdingsPage" data-title="我的持股"><span>▤</span><small>持股</small></button>
     <button class="nav-btn" data-page="watchlistPage" data-title="自選觀察"><span>☆</span><small>自選</small></button>
     <button class="nav-btn" data-page="analyticsPage" data-title="組合分析"><span>◔</span><small>分析</small></button>
+    <button class="nav-btn" data-page="alertsPage" data-title="提醒中心"><span>!</span><small>提醒</small></button>
     <button class="nav-btn" data-page="strategyPage" data-title="策略中心"><span>◎</span><small>策略</small></button>
     <button class="nav-btn" data-page="ledgerPage" data-title="投資帳本"><span>⇄</span><small>帳本</small></button>
     <button class="nav-btn" data-page="importPage" data-title="庫存匯入"><span>⇩</span><small>匯入</small></button>
@@ -334,6 +355,8 @@
     <label>分類<select id="category"><option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option></select></label>
     <div class="two-col"><label>持有股數<input id="shares" type="number" min="0" step="1" required></label><label>平均成本<input id="cost" type="number" min="0" step="0.01" required></label></div>
     <div class="two-col"><label>目前價格<input id="price" type="number" min="0" step="0.01"></label><label>今日漲跌幅<input id="dayChange" type="number" step="0.01"></label></div>
+<div class="two-col"><label>加碼提醒價<input id="buyAlert" type="number" min="0" step="0.01"></label><label>停利提醒價<input id="takeProfit" type="number" min="0" step="0.01"></label></div>
+<label>停損提醒價<input id="stopLoss" type="number" min="0" step="0.01"></label>
     <button class="primary-pill full" type="submit">儲存持股</button>
   </form>
 </dialog>
@@ -348,6 +371,21 @@
     <div class="two-col"><label>目前價格<input id="watchPrice" type="number" min="0" step="0.01"></label><label>理想買點<input id="watchTarget" type="number" min="0" step="0.01"></label></div>
     <label>觀察原因<input id="watchReason" placeholder="例：等待回測季線"></label>
     <button class="primary-pill full" type="submit">儲存自選</button>
+  </form>
+</dialog>
+
+
+<dialog id="alertDialog">
+  <form id="alertForm">
+    <div class="dialog-head"><div><h2>新增價格提醒</h2><p>可用於持股或自選股票</p></div><button type="button" id="closeAlertDialog">✕</button></div>
+    <input id="alertId" type="hidden">
+    <label>股票代號<input id="alertSymbol" required></label>
+    <label>股票名稱<input id="alertName"></label>
+    <label>目前價格<input id="alertPrice" type="number" min="0" step="0.01"></label>
+    <label>提醒類型<select id="alertType"><option value="below">跌到或低於</option><option value="above">漲到或高於</option></select></label>
+    <label>目標價格<input id="alertTarget" type="number" min="0" step="0.01" required></label>
+    <label>提醒備註<input id="alertNote" placeholder="例：到價分批加碼 5,000 元"></label>
+    <button class="primary-pill full" type="submit">儲存提醒</button>
   </form>
 </dialog>
 
