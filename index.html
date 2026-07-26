@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
-  <title>Alpha One 2.0</title>
+  <title>Alpha One 2.1</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -36,10 +36,7 @@
 
     <section class="war-room">
       <div class="section-title-row">
-        <div>
-          <span class="eyebrow">ALPHA WAR ROOM</span>
-          <h2>今日戰情室</h2>
-        </div>
+        <div><span class="eyebrow">ALPHA WAR ROOM</span><h2>今日戰情室</h2></div>
         <span class="status-pill">LIVE</span>
       </div>
       <div class="war-grid">
@@ -51,45 +48,27 @@
       <div id="dailyBrief" class="brief-card"></div>
     </section>
 
+    <section class="history-panel">
+      <div class="section-title-row">
+        <div><span class="eyebrow">PERFORMANCE</span><h2>資產走勢</h2></div>
+        <button id="snapshotBtn" class="text-btn">記錄今日快照</button>
+      </div>
+      <div id="historyChart" class="history-chart"></div>
+      <div id="historyStats" class="history-stats"></div>
+    </section>
+
     <section class="score-panel">
       <div class="section-title-row">
-        <div>
-          <span class="eyebrow">ALPHA SCORE</span>
-          <h2>持股評分</h2>
-        </div>
+        <div><span class="eyebrow">ALPHA SCORE</span><h2>持股評分</h2></div>
         <button id="goHoldings" class="text-btn">查看全部 →</button>
       </div>
       <div id="scoreList" class="score-list"></div>
-    </section>
-
-    <section class="visual-grid">
-      <article class="visual-card">
-        <div class="section-title-row">
-          <div><h2>資產配置</h2><p>依市值占比</p></div>
-        </div>
-        <div class="donut-wrap">
-          <div id="allocationDonut" class="donut"><span id="donutCenter">0 檔</span></div>
-          <div id="allocationLegend" class="legend"></div>
-        </div>
-      </article>
-      <article class="visual-card">
-        <div class="section-title-row">
-          <div><h2>損益分布</h2><p>持股獲利與虧損</p></div>
-        </div>
-        <div class="distribution">
-          <div><span>獲利持股</span><strong id="profitCount">0</strong><div class="track"><i id="profitBar"></i></div></div>
-          <div><span>虧損持股</span><strong id="lossCount">0</strong><div class="track"><i id="lossBar" class="lossbar"></i></div></div>
-        </div>
-      </article>
     </section>
   </section>
 
   <section id="holdingsPage" class="page">
     <div class="section-title-row sticky-title">
-      <div>
-        <span class="eyebrow">PORTFOLIO</span>
-        <h2>我的持股</h2>
-      </div>
+      <div><span class="eyebrow">PORTFOLIO</span><h2>我的持股</h2></div>
       <button id="addBtn" class="primary-btn">＋ 新增</button>
     </div>
 
@@ -118,19 +97,17 @@
     <div id="holdingsList" class="holding-list"></div>
   </section>
 
-  <section id="marketPage" class="page">
+  <section id="tradesPage" class="page">
     <div class="section-title-row">
-      <div><span class="eyebrow">MARKET</span><h2>市場儀表板</h2></div>
+      <div><span class="eyebrow">TRADES</span><h2>交易紀錄</h2></div>
+      <button id="addTradeBtn" class="primary-btn">＋ 新增交易</button>
     </div>
-    <div class="market-grid">
-      <article><span>加權指數</span><strong>—</strong><small>待串接即時資料</small></article>
-      <article><span>櫃買指數</span><strong>—</strong><small>待串接即時資料</small></article>
-      <article><span>NASDAQ</span><strong>—</strong><small>待串接即時資料</small></article>
-      <article><span>費城半導體</span><strong>—</strong><small>待串接即時資料</small></article>
-      <article><span>美元／台幣</span><strong>—</strong><small>待串接即時資料</small></article>
-      <article><span>VIX</span><strong>—</strong><small>待串接即時資料</small></article>
+    <div class="trade-summary">
+      <article><span>交易筆數</span><strong id="tradeCount">0</strong></article>
+      <article><span>累計買進</span><strong id="totalBuy">NT$0</strong></article>
+      <article><span>累計賣出</span><strong id="totalSell">NT$0</strong></article>
     </div>
-    <div class="info-callout">這一頁先建立介面與資料位置。下一版會接入即時市場資料來源。</div>
+    <div id="tradeList" class="trade-list"></div>
   </section>
 
   <section id="aiPage" class="page">
@@ -139,7 +116,7 @@
     </div>
     <div id="aiSummary" class="ai-summary"></div>
     <div id="aiBuckets" class="ai-buckets"></div>
-    <div class="info-callout">目前 AI 建議由持股報酬率、今日漲跌、分類與集中度規則產生，下一階段再接入新聞、技術面與籌碼面。</div>
+    <div class="info-callout">目前建議由報酬率、今日漲跌、分類與集中度規則產生，仍不是投資保證。</div>
   </section>
 
   <section id="settingsPage" class="page">
@@ -147,7 +124,7 @@
       <div><span class="eyebrow">SETTINGS</span><h2>資料管理</h2></div>
     </div>
     <div class="settings-card">
-      <p>資料目前保存在這台裝置的瀏覽器。定期匯出備份，可避免更換裝置或清除瀏覽器後遺失。</p>
+      <p>資料保存在這台裝置的瀏覽器。定期匯出備份，避免更換裝置或清除瀏覽器後遺失。</p>
       <div class="action-grid">
         <button id="exportBtn" class="secondary-btn">匯出備份</button>
         <button id="importBtn" class="secondary-btn">匯入備份</button>
@@ -162,7 +139,7 @@
 <nav class="bottom-nav">
   <button class="nav-btn active" data-page="homePage"><span>⌂</span><small>首頁</small></button>
   <button class="nav-btn" data-page="holdingsPage"><span>▤</span><small>持股</small></button>
-  <button class="nav-btn" data-page="marketPage"><span>⌁</span><small>市場</small></button>
+  <button class="nav-btn" data-page="tradesPage"><span>⇄</span><small>交易</small></button>
   <button class="nav-btn" data-page="aiPage"><span>✦</span><small>AI</small></button>
   <button class="nav-btn" data-page="settingsPage"><span>⚙</span><small>設定</small></button>
 </nav>
@@ -187,6 +164,26 @@
     </div>
     <label class="switch-row"><input id="favorite" type="checkbox"><span>加入收藏</span></label>
     <button class="primary-btn full" type="submit">儲存持股</button>
+  </form>
+</dialog>
+
+<dialog id="tradeDialog">
+  <form id="tradeForm">
+    <div class="dialog-head">
+      <div><h2>新增交易</h2><p>買進會自動重算平均成本</p></div>
+      <button type="button" id="closeTradeDialog" class="close-btn">✕</button>
+    </div>
+    <label>交易日期<input id="tradeDate" type="date" required></label>
+    <label>股票代號<input id="tradeSymbol" required placeholder="例：00919"></label>
+    <label>股票名稱<input id="tradeName"></label>
+    <label>分類<select id="tradeCategory"><option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option></select></label>
+    <label>交易類型<select id="tradeType"><option value="buy">買進</option><option value="sell">賣出</option></select></label>
+    <div class="two-col">
+      <label>股數<input id="tradeShares" type="number" min="1" step="1" required></label>
+      <label>成交價<input id="tradePrice" type="number" min="0" step="0.01" required></label>
+    </div>
+    <label>手續費<input id="tradeFee" type="number" min="0" step="1" value="0"></label>
+    <button class="primary-btn full" type="submit">儲存交易</button>
   </form>
 </dialog>
 
