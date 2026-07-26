@@ -4,101 +4,109 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07111f">
-  <title>Alpha One</title>
+  <title>Alpha One 2.0</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="hero">
+<header class="app-header">
   <div>
-    <div class="brand-kicker">PERSONAL INVESTMENT OS</div>
+    <div class="kicker">PERSONAL INVESTMENT OS</div>
     <h1>Alpha One</h1>
     <p id="todayText"></p>
   </div>
-  <button id="refreshBtn" class="icon-btn" aria-label="更新股價">↻</button>
+  <button id="refreshBtn" class="round-btn" aria-label="更新股價">↻</button>
 </header>
 
 <main>
-  <section class="headline-card">
-    <div>
-      <span>目前總資產</span>
-      <strong id="totalValue">NT$0</strong>
-    </div>
-    <div class="headline-pnl">
-      <span>未實現損益</span>
-      <strong id="totalPnl">NT$0</strong>
-      <small id="totalRoi">0.00%</small>
-    </div>
-  </section>
-
-  <section class="quick-grid">
-    <article><span>總成本</span><strong id="totalCost">NT$0</strong></article>
-    <article><span>持股檔數</span><strong id="holdingCount">0</strong></article>
-    <article><span>今日最強</span><strong id="bestStock">—</strong></article>
-    <article><span>今日最弱</span><strong id="worstStock">—</strong></article>
-  </section>
-
-  <section class="visual-grid">
-    <article class="visual-card">
-      <div class="visual-head">
-        <div><h2>資產配置</h2><p>依市值占比</p></div>
-      </div>
-      <div class="donut-wrap">
-        <div class="donut" id="allocationDonut"><span id="donutCenter">0 檔</span></div>
-        <div id="allocationLegend" class="legend"></div>
-      </div>
-    </article>
-
-    <article class="visual-card">
-      <div class="visual-head">
-        <div><h2>損益分布</h2><p>持股獲利與虧損</p></div>
-      </div>
-      <div class="profit-bars">
-        <div>
-          <div class="bar-label"><span>獲利持股</span><strong id="profitCount">0</strong></div>
-          <div class="bar-track"><span id="profitBar" class="bar-profit"></span></div>
-        </div>
-        <div>
-          <div class="bar-label"><span>虧損持股</span><strong id="lossCount">0</strong></div>
-          <div class="bar-track"><span id="lossBar" class="bar-loss"></span></div>
-        </div>
-      </div>
-      <div id="topMover" class="top-mover"></div>
-    </article>
-  </section>
-
-  <section class="section">
-    <div class="section-head">
+  <section id="homePage" class="page active">
+    <section class="hero-card">
       <div>
+        <span>目前總資產</span>
+        <strong id="totalValue">NT$0</strong>
+        <small id="assetSubtext">0 檔持股</small>
+      </div>
+      <div class="hero-pnl">
+        <span>未實現損益</span>
+        <strong id="totalPnl">NT$0</strong>
+        <small id="totalRoi">0.00%</small>
+      </div>
+    </section>
+
+    <section class="war-room">
+      <div class="section-title-row">
+        <div>
+          <span class="eyebrow">ALPHA WAR ROOM</span>
+          <h2>今日戰情室</h2>
+        </div>
+        <span class="status-pill">LIVE</span>
+      </div>
+      <div class="war-grid">
+        <article><span>總成本</span><strong id="totalCost">NT$0</strong></article>
+        <article><span>今日最強</span><strong id="bestStock">—</strong></article>
+        <article><span>今日最弱</span><strong id="worstStock">—</strong></article>
+        <article><span>收藏持股</span><strong id="favoriteCount">0</strong></article>
+      </div>
+      <div id="dailyBrief" class="brief-card"></div>
+    </section>
+
+    <section class="score-panel">
+      <div class="section-title-row">
+        <div>
+          <span class="eyebrow">ALPHA SCORE</span>
+          <h2>持股評分</h2>
+        </div>
+        <button id="goHoldings" class="text-btn">查看全部 →</button>
+      </div>
+      <div id="scoreList" class="score-list"></div>
+    </section>
+
+    <section class="visual-grid">
+      <article class="visual-card">
+        <div class="section-title-row">
+          <div><h2>資產配置</h2><p>依市值占比</p></div>
+        </div>
+        <div class="donut-wrap">
+          <div id="allocationDonut" class="donut"><span id="donutCenter">0 檔</span></div>
+          <div id="allocationLegend" class="legend"></div>
+        </div>
+      </article>
+      <article class="visual-card">
+        <div class="section-title-row">
+          <div><h2>損益分布</h2><p>持股獲利與虧損</p></div>
+        </div>
+        <div class="distribution">
+          <div><span>獲利持股</span><strong id="profitCount">0</strong><div class="track"><i id="profitBar"></i></div></div>
+          <div><span>虧損持股</span><strong id="lossCount">0</strong><div class="track"><i id="lossBar" class="lossbar"></i></div></div>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section id="holdingsPage" class="page">
+    <div class="section-title-row sticky-title">
+      <div>
+        <span class="eyebrow">PORTFOLIO</span>
         <h2>我的持股</h2>
-        <p>依你選擇的條件排列</p>
       </div>
       <button id="addBtn" class="primary-btn">＋ 新增</button>
     </div>
 
     <div class="toolbar">
-      <label class="search-box">
-        <span>搜尋</span>
-        <input id="searchInput" placeholder="股票代號或名稱">
-      </label>
-      <label class="sort-box">
-        <span>排序</span>
-        <select id="sortSelect">
-          <option value="value">市值</option>
-          <option value="pnl">損益</option>
-          <option value="roi">報酬率</option>
-          <option value="symbol">股票代號</option>
-          <option value="dayChange">今日漲跌</option>
-        </select>
-      </label>
-      <label class="favorite-toggle">
-        <input id="favoriteOnly" type="checkbox">
-        <span>只看收藏</span>
-      </label>
+      <label><span>搜尋</span><input id="searchInput" placeholder="股票代號或名稱"></label>
+      <label><span>排序</span><select id="sortSelect">
+        <option value="score">Alpha Score</option>
+        <option value="value">市值</option>
+        <option value="pnl">損益</option>
+        <option value="roi">報酬率</option>
+        <option value="symbol">股票代號</option>
+        <option value="dayChange">今日漲跌</option>
+      </select></label>
+      <label class="switch-row"><input id="favoriteOnly" type="checkbox"><span>只看收藏</span></label>
     </div>
 
-    <div id="filterBar" class="chips">
+    <div class="chips">
       <button class="chip active" data-category="全部">全部</button>
       <button class="chip" data-category="ETF">ETF</button>
       <button class="chip" data-category="金融">金融</button>
@@ -110,40 +118,65 @@
     <div id="holdingsList" class="holding-list"></div>
   </section>
 
-  <section class="section">
-    <div class="section-head">
-      <div>
-        <h2>資料管理</h2>
-        <p>資料儲存在目前裝置</p>
-      </div>
+  <section id="marketPage" class="page">
+    <div class="section-title-row">
+      <div><span class="eyebrow">MARKET</span><h2>市場儀表板</h2></div>
     </div>
-    <div class="action-grid">
-      <button id="exportBtn" class="secondary-btn">匯出備份</button>
-      <button id="importBtn" class="secondary-btn">匯入備份</button>
-      <button id="sampleBtn" class="secondary-btn">載入示範</button>
-      <button id="clearBtn" class="danger-btn">清空資料</button>
-      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    <div class="market-grid">
+      <article><span>加權指數</span><strong>—</strong><small>待串接即時資料</small></article>
+      <article><span>櫃買指數</span><strong>—</strong><small>待串接即時資料</small></article>
+      <article><span>NASDAQ</span><strong>—</strong><small>待串接即時資料</small></article>
+      <article><span>費城半導體</span><strong>—</strong><small>待串接即時資料</small></article>
+      <article><span>美元／台幣</span><strong>—</strong><small>待串接即時資料</small></article>
+      <article><span>VIX</span><strong>—</strong><small>待串接即時資料</small></article>
+    </div>
+    <div class="info-callout">這一頁先建立介面與資料位置。下一版會接入即時市場資料來源。</div>
+  </section>
+
+  <section id="aiPage" class="page">
+    <div class="section-title-row">
+      <div><span class="eyebrow">ALPHA AI</span><h2>今日建議</h2></div>
+    </div>
+    <div id="aiSummary" class="ai-summary"></div>
+    <div id="aiBuckets" class="ai-buckets"></div>
+    <div class="info-callout">目前 AI 建議由持股報酬率、今日漲跌、分類與集中度規則產生，下一階段再接入新聞、技術面與籌碼面。</div>
+  </section>
+
+  <section id="settingsPage" class="page">
+    <div class="section-title-row">
+      <div><span class="eyebrow">SETTINGS</span><h2>資料管理</h2></div>
+    </div>
+    <div class="settings-card">
+      <p>資料目前保存在這台裝置的瀏覽器。定期匯出備份，可避免更換裝置或清除瀏覽器後遺失。</p>
+      <div class="action-grid">
+        <button id="exportBtn" class="secondary-btn">匯出備份</button>
+        <button id="importBtn" class="secondary-btn">匯入備份</button>
+        <button id="sampleBtn" class="secondary-btn">載入示範</button>
+        <button id="clearBtn" class="danger-btn">清空資料</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
     </div>
   </section>
 </main>
 
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-page="homePage"><span>⌂</span><small>首頁</small></button>
+  <button class="nav-btn" data-page="holdingsPage"><span>▤</span><small>持股</small></button>
+  <button class="nav-btn" data-page="marketPage"><span>⌁</span><small>市場</small></button>
+  <button class="nav-btn" data-page="aiPage"><span>✦</span><small>AI</small></button>
+  <button class="nav-btn" data-page="settingsPage"><span>⚙</span><small>設定</small></button>
+</nav>
+
 <dialog id="stockDialog">
   <form id="stockForm">
     <div class="dialog-head">
-      <div>
-        <h2 id="dialogTitle">新增持股</h2>
-        <p>輸入目前庫存資料</p>
-      </div>
-      <button class="close-btn" type="button" id="closeDialog">✕</button>
+      <div><h2 id="dialogTitle">新增持股</h2><p>輸入目前庫存資料</p></div>
+      <button type="button" id="closeDialog" class="close-btn">✕</button>
     </div>
     <input id="stockId" type="hidden">
-    <label>股票代號<input id="symbol" required placeholder="例：00919"></label>
-    <label>股票名稱<input id="name" placeholder="例：群益台灣精選高息"></label>
-    <label>分類
-      <select id="category">
-        <option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option>
-      </select>
-    </label>
+    <label>股票代號<input id="symbol" required></label>
+    <label>股票名稱<input id="name"></label>
+    <label>分類<select id="category"><option>ETF</option><option>金融</option><option>科技</option><option>傳產</option><option>其他</option></select></label>
     <div class="two-col">
       <label>持有股數<input id="shares" type="number" min="0" step="1" required></label>
       <label>平均成本<input id="cost" type="number" min="0" step="0.01" required></label>
@@ -152,11 +185,8 @@
       <label>目前價格<input id="price" type="number" min="0" step="0.01" value="0"></label>
       <label>今日漲跌幅<input id="dayChange" type="number" step="0.01" value="0"></label>
     </div>
-    <label class="favorite-field">
-      <input id="favorite" type="checkbox">
-      <span>加入收藏</span>
-    </label>
-    <button type="submit" class="primary-btn full">儲存持股</button>
+    <label class="switch-row"><input id="favorite" type="checkbox"><span>加入收藏</span></label>
+    <button class="primary-btn full" type="submit">儲存持股</button>
   </form>
 </dialog>
 
