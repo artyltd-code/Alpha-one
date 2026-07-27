@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#05070b">
-  <title>Alpha One 4.2</title>
+  <title>Alpha One 4.3.1</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div>
-      <span class="eyebrow">ALPHA ONE 4.2</span>
+      <span class="eyebrow">ALPHA ONE 4.3.1</span>
       <h1 id="pageTitle">總覽</h1>
     </div>
     <button id="refreshBtn" class="icon-btn">↻</button>
@@ -50,6 +50,11 @@
           <article><span>槓桿曝險</span><strong id="leverageExposure">0.00%</strong></article>
         </div>
         <div id="dailyBrief" class="brief"></div>
+        <details class="quote-diagnostics">
+          <summary>行情更新明細</summary>
+          <div id="quoteSourceSummary" class="quote-source-summary"></div>
+          <div id="quoteUpdateLog" class="quote-update-log"><div class="empty">尚未執行行情更新</div></div>
+        </details>
         <div class="daily-rank-grid"><div><span class="eyebrow">TOP GAINER</span><div id="dailyWinner" class="daily-rank-card"></div></div><div><span class="eyebrow">TOP LOSER</span><div id="dailyLoser" class="daily-rank-card"></div></div></div>
       </section>
 
@@ -148,6 +153,52 @@
     </section>
 
 
+
+
+    <section id="performancePage" class="page">
+      <section class="section-card glass">
+        <div class="section-head">
+          <div><span class="eyebrow">PERFORMANCE CENTER</span><h2>績效中心</h2></div>
+          <button id="recordPerformanceBtn" class="primary-pill">記錄目前資產</button>
+        </div>
+
+        <div class="segment-control performance-range">
+          <button class="performance-range-btn segment active" data-range="month">本月</button>
+          <button class="performance-range-btn segment" data-range="year">今年</button>
+          <button class="performance-range-btn segment" data-range="all">全部</button>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card glass"><span>資產變化</span><strong id="periodAssetChange">NT$0</strong></article>
+          <article class="metric-card glass"><span>期間報酬</span><strong id="periodReturn">0.00%</strong></article>
+          <article class="metric-card glass"><span>已實現損益</span><strong id="periodRealized">NT$0</strong></article>
+          <article class="metric-card glass"><span>股息收入</span><strong id="periodDividend">NT$0</strong></article>
+        </div>
+
+        <div id="performanceChart" class="performance-chart"></div>
+        <div id="performanceRangeInfo" class="stats-row"></div>
+      </section>
+
+      <section class="analytics-grid">
+        <article class="section-card glass">
+          <span class="eyebrow">CONTRIBUTION</span>
+          <h2>獲利貢獻排行</h2>
+          <div id="contributionList" class="rank-list"></div>
+        </article>
+
+        <article class="section-card glass">
+          <span class="eyebrow">DIVIDEND LEADERS</span>
+          <h2>股息貢獻排行</h2>
+          <div id="dividendLeaderList" class="rank-list"></div>
+        </article>
+      </section>
+
+      <section class="section-card glass">
+        <span class="eyebrow">SNAPSHOT HISTORY</span>
+        <h2>每日資產紀錄</h2>
+        <div id="snapshotHistoryList" class="snapshot-list"></div>
+      </section>
+    </section>
 
     <section id="alertsPage" class="page">
       <section class="section-card glass">
@@ -305,6 +356,7 @@
     <button class="nav-btn" data-page="holdingsPage" data-title="我的持股"><span>▤</span><small>持股</small></button>
     <button class="nav-btn" data-page="watchlistPage" data-title="自選觀察"><span>☆</span><small>自選</small></button>
     <button class="nav-btn" data-page="analyticsPage" data-title="組合分析"><span>◔</span><small>分析</small></button>
+    <button class="nav-btn" data-page="performancePage" data-title="績效中心"><span>↗</span><small>績效</small></button>
     <button class="nav-btn" data-page="alertsPage" data-title="提醒中心"><span>!</span><small>提醒</small></button>
     <button class="nav-btn" data-page="strategyPage" data-title="策略中心"><span>◎</span><small>策略</small></button>
     <button class="nav-btn" data-page="ledgerPage" data-title="投資帳本"><span>⇄</span><small>帳本</small></button>
