@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#05070b">
-  <title>Alpha One 4.1</title>
+  <title>Alpha One 4.2</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon.svg">
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div>
-      <span class="eyebrow">ALPHA ONE 4.1</span>
+      <span class="eyebrow">ALPHA ONE 4.2</span>
       <h1 id="pageTitle">總覽</h1>
     </div>
     <button id="refreshBtn" class="icon-btn">↻</button>
@@ -42,11 +42,15 @@
       </section>
 
       <section class="section-card glass">
-        <div class="section-head">
-          <div><span class="eyebrow">WAR ROOM</span><h2>今日戰情</h2></div>
-          <span class="live-dot">LIVE</span>
+        <div class="section-head"><div><span class="eyebrow">DAILY COMMAND</span><h2>今日戰情中心</h2></div><span id="marketDataStatus" class="live-dot">待更新</span></div>
+        <div class="daily-metrics">
+          <article><span>今日損益</span><strong id="todayPnl">NT$0</strong></article>
+          <article><span>今日報酬</span><strong id="todayRoi">0.00%</strong></article>
+          <article><span>上漲／下跌</span><strong id="advanceDecline">0／0</strong></article>
+          <article><span>槓桿曝險</span><strong id="leverageExposure">0.00%</strong></article>
         </div>
         <div id="dailyBrief" class="brief"></div>
+        <div class="daily-rank-grid"><div><span class="eyebrow">TOP GAINER</span><div id="dailyWinner" class="daily-rank-card"></div></div><div><span class="eyebrow">TOP LOSER</span><div id="dailyLoser" class="daily-rank-card"></div></div></div>
       </section>
 
       <section class="section-card glass">
@@ -279,8 +283,8 @@
 
     <section id="settingsPage" class="page">
       <section class="section-card glass">
-        <span class="eyebrow">DATA</span>
-        <h2>資料管理</h2>
+        <span class="eyebrow">DATA</span><h2>資料管理</h2>
+        <div class="cash-panel"><div><span>可用現金</span><strong id="cashDisplay">NT$0</strong></div><button id="editCashBtn" class="secondary-pill">設定現金</button></div>
         <p class="muted">資料儲存在目前裝置的瀏覽器。建議定期匯出備份。</p>
         <div class="settings-grid">
           <button id="reconcileBtn">庫存一致性檢查</button>
@@ -398,6 +402,7 @@
   </div>
 </section>
 
+<dialog id="cashDialog"><form id="cashForm"><div class="dialog-head"><div><h2>設定可用現金</h2><p>用於計算總資產</p></div><button type="button" id="closeCashDialog">✕</button></div><label>可用現金（新台幣）<input id="cashAmount" type="number" min="0" step="1" required></label><button class="primary-pill full" type="submit">儲存現金</button></form></dialog>
 <dialog id="stockDialog">
   <form id="stockForm">
     <div class="dialog-head"><div><h2 id="dialogTitle">新增持股</h2><p>輸入目前庫存資料</p></div><button type="button" id="closeStockDialog">✕</button></div>

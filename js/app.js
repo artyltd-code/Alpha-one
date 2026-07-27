@@ -1,4 +1,4 @@
-const KEY="alphaOneV41";
+const KEY="alphaOneV42";
 let state=load(),pending=[],ocrFiles=[],ocrResults=[],currentCategory="全部",currentSort="value",currentSearch="",watchSearch="",currentDetailId=null,selectedMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("zh-TW",{style:"currency",currency:"TWD",maximumFractionDigits:0}).format(Number(n)||0);
@@ -6,8 +6,8 @@ const num=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:2}).format(Num
 const pct=n=>`${(Number(n)||0).toFixed(2)}%`;
 const uid=()=>crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function normalize(v){return{stocks:(v.stocks||[]).map(s=>({...s,favorite:!!s.favorite,reason:s.reason||"",risk:s.risk||"",buyAlert:Number(s.buyAlert||0),takeProfit:Number(s.takeProfit||0),stopLoss:Number(s.stopLoss||0)})),trades:v.trades||[],history:v.history||[],dividends:v.dividends||[],watchlist:v.watchlist||[],alerts:v.alerts||[],importHistory:v.importHistory||[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5,...(v.targets||{})}}}
-function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v?.stocks)return normalize(v);for(const k of["alphaOneV40","alphaOneV33","alphaOneV32","alphaOneV31","alphaOneV30","alphaOneV24","alphaOneV23","alphaOneV22","alphaOneV21"]){const o=JSON.parse(localStorage.getItem(k));if(o?.stocks)return normalize(o)}}catch{}return{stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}}}
+function normalize(v){return{stocks:(v.stocks||[]).map(s=>({...s,prevClose:Number(s.prevClose||0),lastUpdated:s.lastUpdated||"",favorite:!!s.favorite,reason:s.reason||"",risk:s.risk||"",buyAlert:Number(s.buyAlert||0),takeProfit:Number(s.takeProfit||0),stopLoss:Number(s.stopLoss||0)})),trades:v.trades||[],history:v.history||[],dividends:v.dividends||[],watchlist:v.watchlist||[],alerts:v.alerts||[],importHistory:v.importHistory||[],cash:Number(v.cash||0),targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5,...(v.targets||{})}}}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v?.stocks)return normalize(v);for(const k of["alphaOneV41","alphaOneV40","alphaOneV33","alphaOneV32","alphaOneV31","alphaOneV30","alphaOneV24","alphaOneV23","alphaOneV22","alphaOneV21"]){const o=JSON.parse(localStorage.getItem(k));if(o?.stocks)return normalize(o)}}catch{}return{stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],cash:0,targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
 function cls(v){return v>0?"gain":v<0?"loss":"flat"}
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
@@ -25,10 +25,20 @@ document.querySelectorAll(".detail-tab").forEach(b=>b.onclick=()=>{document.quer
 
 function render(){
   const all=allStocks(),t=totals(all),r=realized(),d=dividends(),grand=t.pnl+r+d;
-  $("totalValue").textContent=money(t.totalValue);$("holdingCount").textContent=`${all.length} 檔持股`;
+  $("totalValue").textContent=money(t.totalValue+Number(state.cash||0));$("holdingCount").textContent=`${all.length} 檔持股｜現金 ${money(state.cash||0)}`;
   $("grandPnl").textContent=money(grand);$("grandPnl").className=cls(grand);$("grandRoi").textContent=pct(grand/(t.totalCost||1)*100);$("grandRoi").className=cls(grand);
   $("unrealizedPnl").textContent=money(t.pnl);$("unrealizedPnl").className=cls(t.pnl);$("realizedPnl").textContent=money(r);$("realizedPnl").className=cls(r);$("dividendTotal").textContent=money(d);$("totalCost").textContent=money(t.totalCost);
-  renderBrief(all,t);renderAllocation(all,t.totalValue);renderTop(all);renderHistory();renderHoldings(all);renderWatchlist();renderAnalytics(all,t);renderAlerts(all);renderDataHealth(all);renderStrategy(all,t);renderMonthly();renderTrades();renderDividends();renderPreview();renderOcrQueue();renderOcrReview();renderImportHistory();if(currentDetailId)renderDetail()
+  renderDailyCommand(all,t);renderBrief(all,t);renderAllocation(all,t.totalValue);renderTop(all);renderHistory();renderHoldings(all);renderWatchlist();renderAnalytics(all,t);renderAlerts(all);renderDataHealth(all);renderStrategy(all,t);renderMonthly();renderTrades();renderDividends();renderPreview();renderOcrQueue();renderOcrReview();renderImportHistory();$("cashDisplay").textContent=money(state.cash||0);if(currentDetailId)renderDetail()
+}
+function renderDailyCommand(all,t){
+ const valid=all.filter(s=>s.prevClose>0&&s.price>0),p=valid.reduce((a,s)=>a+(s.price-s.prevClose)*s.shares,0),pv=valid.reduce((a,s)=>a+s.prevClose*s.shares,0);
+ const ranked=valid.map(s=>({...s,dp:(s.price-s.prevClose)*s.shares,dr:(s.price-s.prevClose)/s.prevClose*100})),w=[...ranked].sort((a,b)=>b.dp-a.dp)[0],l=[...ranked].sort((a,b)=>a.dp-b.dp)[0];
+ $("todayPnl").textContent=money(p);$("todayPnl").className=cls(p);$("todayRoi").textContent=pct(pv?p/pv*100:0);$("todayRoi").className=cls(p);
+ $("advanceDecline").textContent=`${valid.filter(s=>s.price>s.prevClose).length}／${valid.filter(s=>s.price<s.prevClose).length}`;
+ const lev=all.filter(s=>/正2|2X|槓桿/i.test(`${s.name} ${s.symbol}`)).reduce((a,s)=>a+s.value,0);$("leverageExposure").textContent=pct(t.totalValue?lev/t.totalValue*100:0);
+ $("dailyWinner").innerHTML=w?`<strong>${esc(w.symbol)}｜${esc(w.name||"")}</strong><small class="${cls(w.dp)}">${money(w.dp)}｜${pct(w.dr)}</small>`:'<div class="empty">尚無昨收資料</div>';
+ $("dailyLoser").innerHTML=l?`<strong>${esc(l.symbol)}｜${esc(l.name||"")}</strong><small class="${cls(l.dp)}">${money(l.dp)}｜${pct(l.dr)}</small>`:'<div class="empty">尚無昨收資料</div>';
+ const latest=valid.map(s=>s.lastUpdated).filter(Boolean).sort().at(-1);$("marketDataStatus").textContent=latest?`更新 ${new Date(latest).toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"})}`:"待更新";
 }
 function renderBrief(all,t){if(!all.length){$("dailyBrief").textContent="尚未建立持股。可直接新增，或把券商截圖交給我整理成批次匯入格式。";return}const top=[...all].sort((a,b)=>b.score-a.score)[0],weak=[...all].sort((a,b)=>a.score-b.score)[0],max=Math.max(...all.map(x=>x.value)),conc=t.totalValue?max/t.totalValue*100:0;$("dailyBrief").innerHTML=`Alpha Score 最高為 ${top.symbol}（${top.score} 分），最低為 ${weak.symbol}（${weak.score} 分）。<br>目前未實現損益 ${money(t.pnl)}，整體報酬率 ${pct(t.roi)}。${conc>45?`<br>最大單一持股占比約 ${conc.toFixed(1)}%，集中度偏高。`:""}`}
 function allocationData(all,totalValue){const cats=["ETF","金融","科技","傳產","其他"],colors=["#2f9cff","#7d5cff","#ff315f","#00d28e","#f0b55b"];const sums=cats.map(c=>all.filter(x=>x.category===c).reduce((a,x)=>a+x.value,0));return{cats,colors,sums,totalValue}}
@@ -141,9 +151,12 @@ const ds=state.dividends.filter(x=>x.symbol===s.symbol).sort((a,b)=>b.date.local
 $("detailFavorite").onclick=()=>{const s=state.stocks.find(x=>x.id===currentDetailId);if(s){s.favorite=!s.favorite;save()}};
 $("saveDetailNotes").onclick=()=>{const s=state.stocks.find(x=>x.id===currentDetailId);if(s){s.reason=$("detailReason").value.trim();s.risk=$("detailRisk").value.trim();save();toast("投資筆記已儲存")}};
 
+$("editCashBtn").onclick=()=>{$("cashAmount").value=state.cash||0;$("cashDialog").showModal()};
+$("closeCashDialog").onclick=()=>$("cashDialog").close();
+$("cashForm").onsubmit=e=>{e.preventDefault();state.cash=Number($("cashAmount").value||0);$("cashDialog").close();save();toast("可用現金已更新")};
 function openStock(s=null){$("dialogTitle").textContent=s?"修改持股":"新增持股";$("stockId").value=s?.id||"";$("symbol").value=s?.symbol||"";$("name").value=s?.name||"";$("category").value=s?.category||"ETF";$("shares").value=s?.shares??"";$("cost").value=s?.cost??"";$("price").value=s?.price??0;$("dayChange").value=s?.dayChange??0;$("buyAlert").value=s?.buyAlert??0;$("takeProfit").value=s?.takeProfit??0;$("stopLoss").value=s?.stopLoss??0;$("stockDialog").showModal()}
 $("addBtn").onclick=()=>openStock();$("closeStockDialog").onclick=()=>$("stockDialog").close();
-$("stockForm").onsubmit=e=>{e.preventDefault();const id=$("stockId").value,old=state.stocks.find(x=>x.id===id),item={id:id||uid(),symbol:$("symbol").value.trim().toUpperCase(),name:$("name").value.trim(),category:$("category").value,shares:Number($("shares").value),cost:Number($("cost").value),price:Number($("price").value||0),dayChange:Number($("dayChange").value||0),buyAlert:Number($("buyAlert").value||0),takeProfit:Number($("takeProfit").value||0),stopLoss:Number($("stopLoss").value||0),favorite:old?.favorite||false,reason:old?.reason||"",risk:old?.risk||""};state.stocks=id?state.stocks.map(x=>x.id===id?item:x):[...state.stocks,item];$("stockDialog").close();save();toast("持股已儲存")};
+$("stockForm").onsubmit=e=>{e.preventDefault();const id=$("stockId").value,old=state.stocks.find(x=>x.id===id),item={id:id||uid(),symbol:$("symbol").value.trim().toUpperCase(),name:$("name").value.trim(),category:$("category").value,shares:Number($("shares").value),cost:Number($("cost").value),price:Number($("price").value||0),dayChange:Number($("dayChange").value||0),buyAlert:Number($("buyAlert").value||0),takeProfit:Number($("takeProfit").value||0),stopLoss:Number($("stopLoss").value||0),prevClose:old?.prevClose||0,lastUpdated:old?.lastUpdated||"",favorite:old?.favorite||false,reason:old?.reason||"",risk:old?.risk||""};state.stocks=id?state.stocks.map(x=>x.id===id?item:x):[...state.stocks,item];$("stockDialog").close();save();toast("持股已儲存")};
 
 function openWatch(w=null){$("watchId").value=w?.id||"";$("watchSymbol").value=w?.symbol||"";$("watchName").value=w?.name||"";$("watchCategory").value=w?.category||"ETF";$("watchPrice").value=w?.price??0;$("watchTarget").value=w?.target??0;$("watchReason").value=w?.reason||"";$("watchDialog").showModal()}
 $("addWatchBtn").onclick=()=>openWatch();$("closeWatchDialog").onclick=()=>$("watchDialog").close();
@@ -271,7 +284,7 @@ function renderOcrReview(){
   document.querySelectorAll("[data-remove-trade]").forEach(b=>b.onclick=()=>{syncOcrFromDom();ocrResults.forEach(r=>r.trades=r.trades.filter(t=>t.id!==b.dataset.removeTrade));renderOcrReview()});
 }
 
-function cloneData(){return JSON.parse(JSON.stringify({stocks:state.stocks,trades:state.trades,history:state.history,dividends:state.dividends,watchlist:state.watchlist,alerts:state.alerts,targets:state.targets}))}
+function cloneData(){return JSON.parse(JSON.stringify({stocks:state.stocks,trades:state.trades,history:state.history,dividends:state.dividends,watchlist:state.watchlist,alerts:state.alerts,cash:state.cash,targets:state.targets}))}
 function pushImportSnapshot(type,summary){
   state.importHistory=state.importHistory||[];
   state.importHistory.unshift({id:uid(),createdAt:new Date().toISOString(),type,summary,snapshot:cloneData()});
@@ -321,7 +334,7 @@ $("approveImportBtn").onclick=()=>{for(const x of pending){if(!x.symbol||!Number
 
 document.querySelectorAll(".segment[data-category]").forEach(c=>c.onclick=()=>{document.querySelectorAll(".segment[data-category]").forEach(x=>x.classList.remove("active"));c.classList.add("active");currentCategory=c.dataset.category;render()});
 $("searchInput").oninput=e=>{currentSearch=e.target.value.trim().toLowerCase();render()};$("sortSelect").onchange=e=>{currentSort=e.target.value;render()};$("watchSearch").oninput=e=>{watchSearch=e.target.value.trim().toLowerCase();renderWatchlist()};
-$("refreshBtn").onclick=async()=>{if(!state.stocks.length&&!state.watchlist.length){toast("目前沒有持股或自選");return}const b=$("refreshBtn");b.disabled=true;b.textContent="…";let ok=0;for(const s of [...state.stocks,...state.watchlist]){for(const m of["tse","otc"]){try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${m}_${s.symbol}.tw`,{cache:"no-store"});const j=await r.json(),row=j?.msgArray?.[0];if(row){const p=Number(row.z||row.y);if(p>0){s.price=p;s.name=s.name||row.n;ok++;break}}}catch{}}}save();b.disabled=false;b.textContent="↻";const hit=allAlerts(allStocks()).filter(a=>a.triggered).length;toast(`已更新 ${ok} 檔，${hit} 個提醒達標`)};
+$("refreshBtn").onclick=async()=>{if(!state.stocks.length&&!state.watchlist.length){toast("目前沒有持股或自選");return}const b=$("refreshBtn");b.disabled=true;b.textContent="…";let ok=0;for(const s of [...state.stocks,...state.watchlist]){for(const m of["tse","otc"]){try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${m}_${s.symbol}.tw`,{cache:"no-store"});const j=await r.json(),row=j?.msgArray?.[0];if(row){const p=Number(row.z||row.y),prev=Number(row.y||0);if(p>0){s.price=p;s.prevClose=prev;s.dayChange=prev?(p-prev)/prev*100:0;s.lastUpdated=new Date().toISOString();s.name=s.name||row.n;ok++;break}}}catch{}}}save();b.disabled=false;b.textContent="↻";const hit=allAlerts(allStocks()).filter(a=>a.triggered).length;toast(`已更新 ${ok} 檔，${hit} 個提醒達標`)};
 
 
 function computeHoldingsFromTrades(){
@@ -357,7 +370,7 @@ $("rebuildFromTradesBtn").onclick=()=>{
 };
 
 function download(content,name,type){const a=document.createElement("a"),blob=new Blob(["\ufeff"+content],{type});a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
-$("exportBtn").onclick=()=>download(JSON.stringify({version:"4.1",...state,exportedAt:new Date().toISOString()},null,2),`alpha-one-${new Date().toISOString().slice(0,10)}.json`,"application/json");
+$("exportBtn").onclick=()=>download(JSON.stringify({version:"4.2",...state,exportedAt:new Date().toISOString()},null,2),`alpha-one-${new Date().toISOString().slice(0,10)}.json`,"application/json");
 $("exportCsvBtn").onclick=()=>download(["股票代號,股票名稱,分類,股數,平均成本,目前價格,今日漲跌幅",...state.stocks.map(s=>[s.symbol,s.name,s.category,s.shares,s.cost,s.price,s.dayChange].join(","))].join("\n"),"alpha-one-holdings.csv","text/csv");
 $("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=async e=>{try{
   const previous=cloneData();
@@ -368,5 +381,5 @@ $("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=asyn
   state=imported;save();toast("匯入完成")
 }catch{toast("備份格式錯誤")}e.target.value=""};
 $("sampleBtn").onclick=()=>{state={stocks:[{id:uid(),symbol:"00400A",name:"主動國泰動能高息",category:"ETF",shares:3000,cost:13.50,price:13.41,dayChange:-.59,favorite:true,reason:"作為主動式高股息 ETF 部位，分批建立。",risk:"跌破 12.8 或策略失效時重新評估。"},{id:uid(),symbol:"0050",name:"元大台灣50",category:"ETF",shares:2000,cost:174.6,price:188.2,dayChange:1.15,favorite:true,reason:"核心市場部位",risk:"高檔避免追價"},{id:uid(),symbol:"2882",name:"國泰金",category:"金融",shares:5000,cost:54.8,price:61.2,dayChange:-.49,favorite:false,reason:"金融股配置",risk:"留意利率與景氣"}],trades:[{id:uid(),date:"2026-05-14",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.91,fee:0,note:"首次建立部位",realized:0},{id:uid(),date:"2026-05-15",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.50,fee:0,note:"第二次加碼",realized:0},{id:uid(),date:"2026-05-19",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:12.78,fee:0,note:"逢低加碼",realized:0},{id:uid(),date:"2026-07-17",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:13.31,fee:0,note:"分批加碼",realized:0}],history:[],dividends:[],alerts:[{id:uid(),symbol:"2330",name:"台積電",price:1180,type:"below",target:1100,note:"到價分批建立"}],targets:{ETF:45,金融:20,科技:25,傳產:5,其他:5},watchlist:[{id:uid(),symbol:"2330",name:"台積電",category:"科技",price:1180,target:1100,reason:"等待拉回再分批建立"},{id:uid(),symbol:"2881",name:"富邦金",category:"金融",price:92.5,target:88,reason:"觀察金融股回檔買點"}]};save();toast("示範資料已載入")};
-$("clearBtn").onclick=()=>{if(confirm("確定清空全部資料？")){state={stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}};save()}};
+$("clearBtn").onclick=()=>{if(confirm("確定清空全部資料？")){state={stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],cash:0,targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}};save()}};
 render();
