@@ -1,13 +1,13 @@
-const KEY="alphaOneV33";
-let state=load(),pending=[],currentCategory="全部",currentSort="value",currentSearch="",watchSearch="",currentDetailId=null,selectedMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+const KEY="alphaOneV41";
+let state=load(),pending=[],ocrFiles=[],ocrResults=[],currentCategory="全部",currentSort="value",currentSearch="",watchSearch="",currentDetailId=null,selectedMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("zh-TW",{style:"currency",currency:"TWD",maximumFractionDigits:0}).format(Number(n)||0);
 const num=n=>new Intl.NumberFormat("zh-TW",{maximumFractionDigits:2}).format(Number(n)||0);
 const pct=n=>`${(Number(n)||0).toFixed(2)}%`;
 const uid=()=>crypto.randomUUID?.()||`${Date.now()}-${Math.random()}`;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function normalize(v){return{stocks:(v.stocks||[]).map(s=>({...s,favorite:!!s.favorite,reason:s.reason||"",risk:s.risk||"",buyAlert:Number(s.buyAlert||0),takeProfit:Number(s.takeProfit||0),stopLoss:Number(s.stopLoss||0)})),trades:v.trades||[],history:v.history||[],dividends:v.dividends||[],watchlist:v.watchlist||[],alerts:v.alerts||[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5,...(v.targets||{})}}}
-function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v?.stocks)return normalize(v);for(const k of["alphaOneV32","alphaOneV31","alphaOneV30","alphaOneV24","alphaOneV23","alphaOneV22","alphaOneV21"]){const o=JSON.parse(localStorage.getItem(k));if(o?.stocks)return normalize(o)}}catch{}return{stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}}}
+function normalize(v){return{stocks:(v.stocks||[]).map(s=>({...s,favorite:!!s.favorite,reason:s.reason||"",risk:s.risk||"",buyAlert:Number(s.buyAlert||0),takeProfit:Number(s.takeProfit||0),stopLoss:Number(s.stopLoss||0)})),trades:v.trades||[],history:v.history||[],dividends:v.dividends||[],watchlist:v.watchlist||[],alerts:v.alerts||[],importHistory:v.importHistory||[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5,...(v.targets||{})}}}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v?.stocks)return normalize(v);for(const k of["alphaOneV40","alphaOneV33","alphaOneV32","alphaOneV31","alphaOneV30","alphaOneV24","alphaOneV23","alphaOneV22","alphaOneV21"]){const o=JSON.parse(localStorage.getItem(k));if(o?.stocks)return normalize(o)}}catch{}return{stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
 function cls(v){return v>0?"gain":v<0?"loss":"flat"}
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
@@ -28,7 +28,7 @@ function render(){
   $("totalValue").textContent=money(t.totalValue);$("holdingCount").textContent=`${all.length} 檔持股`;
   $("grandPnl").textContent=money(grand);$("grandPnl").className=cls(grand);$("grandRoi").textContent=pct(grand/(t.totalCost||1)*100);$("grandRoi").className=cls(grand);
   $("unrealizedPnl").textContent=money(t.pnl);$("unrealizedPnl").className=cls(t.pnl);$("realizedPnl").textContent=money(r);$("realizedPnl").className=cls(r);$("dividendTotal").textContent=money(d);$("totalCost").textContent=money(t.totalCost);
-  renderBrief(all,t);renderAllocation(all,t.totalValue);renderTop(all);renderHistory();renderHoldings(all);renderWatchlist();renderAnalytics(all,t);renderAlerts(all);renderDataHealth(all);renderStrategy(all,t);renderMonthly();renderTrades();renderDividends();renderPreview();if(currentDetailId)renderDetail()
+  renderBrief(all,t);renderAllocation(all,t.totalValue);renderTop(all);renderHistory();renderHoldings(all);renderWatchlist();renderAnalytics(all,t);renderAlerts(all);renderDataHealth(all);renderStrategy(all,t);renderMonthly();renderTrades();renderDividends();renderPreview();renderOcrQueue();renderOcrReview();renderImportHistory();if(currentDetailId)renderDetail()
 }
 function renderBrief(all,t){if(!all.length){$("dailyBrief").textContent="尚未建立持股。可直接新增，或把券商截圖交給我整理成批次匯入格式。";return}const top=[...all].sort((a,b)=>b.score-a.score)[0],weak=[...all].sort((a,b)=>a.score-b.score)[0],max=Math.max(...all.map(x=>x.value)),conc=t.totalValue?max/t.totalValue*100:0;$("dailyBrief").innerHTML=`Alpha Score 最高為 ${top.symbol}（${top.score} 分），最低為 ${weak.symbol}（${weak.score} 分）。<br>目前未實現損益 ${money(t.pnl)}，整體報酬率 ${pct(t.roi)}。${conc>45?`<br>最大單一持股占比約 ${conc.toFixed(1)}%，集中度偏高。`:""}`}
 function allocationData(all,totalValue){const cats=["ETF","金融","科技","傳產","其他"],colors=["#2f9cff","#7d5cff","#ff315f","#00d28e","#f0b55b"];const sums=cats.map(c=>all.filter(x=>x.category===c).reduce((a,x)=>a+x.value,0));return{cats,colors,sums,totalValue}}
@@ -160,6 +160,161 @@ $("dividendForm").onsubmit=e=>{e.preventDefault();state.dividends.push({id:uid()
 function renderTrades(){const list=[...state.trades].sort((a,b)=>b.date.localeCompare(a.date));$("tradeList").innerHTML=list.length?list.map(t=>`<article class="timeline-card"><div class="timeline-head"><div><strong>${esc(t.symbol)}｜${esc(t.name||"")}</strong><div class="stock-name">${t.type==="buy"?"買進":"賣出"}｜${esc(t.date)}</div></div><strong class="${t.type==="sell"?cls(t.realized):""}">${t.type==="sell"?money(t.realized):money(t.shares*t.price+t.fee)}</strong></div><div class="timeline-meta"><div><span>股數</span><strong>${num(t.shares)}</strong></div><div><span>價格</span><strong>${num(t.price)}</strong></div><div><span>手續費</span><strong>${money(t.fee)}</strong></div><div><span>備註</span><strong>${esc(t.note||"—")}</strong></div></div><div class="ledger-delete"><button class="mini-btn delete" data-trade-delete="${t.id}">刪除紀錄</button></div></article>`).join(""):'<div class="empty">尚無交易紀錄</div>';document.querySelectorAll("[data-trade-delete]").forEach(b=>b.onclick=()=>{if(confirm("刪除交易紀錄不會自動回復庫存股數，確定刪除？")){state.trades=state.trades.filter(x=>x.id!==b.dataset.tradeDelete);save()}})}
 function renderDividends(){const list=[...state.dividends].sort((a,b)=>b.date.localeCompare(a.date));$("dividendList").innerHTML=list.length?list.map(d=>`<article class="timeline-card"><div class="timeline-head"><div><strong>${esc(d.symbol)}｜${esc(d.name||"")}</strong><div class="stock-name">${esc(d.date)}｜${esc(d.note||"股息")}</div></div><strong>${money(d.amount)}</strong></div><div class="ledger-delete"><button class="mini-btn delete" data-dividend-delete="${d.id}">刪除紀錄</button></div></article>`).join(""):'<div class="empty">尚無股息紀錄</div>';document.querySelectorAll("[data-dividend-delete]").forEach(b=>b.onclick=()=>{if(confirm("確定刪除股息紀錄？")){state.dividends=state.dividends.filter(x=>x.id!==b.dataset.dividendDelete);save()}})}
 
+
+function fileKey(file){return `${file.name}-${file.size}-${file.lastModified}`}
+$("ocrFiles").onchange=e=>{
+  const incoming=[...e.target.files].filter(f=>/^image\//.test(f.type));
+  const existing=new Set(ocrFiles.map(x=>fileKey(x.file)));
+  incoming.forEach(file=>{if(!existing.has(fileKey(file)))ocrFiles.push({id:uid(),file,url:URL.createObjectURL(file),status:"等待辨識"})});
+  e.target.value="";renderOcrQueue();
+};
+function renderOcrQueue(){
+  const el=$("ocrQueue");if(!el)return;
+  el.innerHTML=ocrFiles.length?ocrFiles.map(x=>`<article class="ocr-thumb"><img src="${x.url}" alt=""><button data-ocr-remove="${x.id}">✕</button><div><small>${esc(x.file.name)}</small><strong>${esc(x.status)}</strong></div></article>`).join(""):'<div class="empty" style="grid-column:1/-1">尚未選擇截圖</div>';
+  document.querySelectorAll("[data-ocr-remove]").forEach(b=>b.onclick=()=>{const x=ocrFiles.find(f=>f.id===b.dataset.ocrRemove);if(x)URL.revokeObjectURL(x.url);ocrFiles=ocrFiles.filter(f=>f.id!==b.dataset.ocrRemove);ocrResults=ocrResults.filter(r=>r.fileId!==b.dataset.ocrRemove);renderOcrQueue();renderOcrReview()});
+}
+$("clearOcrBtn").onclick=()=>{ocrFiles.forEach(x=>URL.revokeObjectURL(x.url));ocrFiles=[];ocrResults=[];renderOcrQueue();renderOcrReview();toast("已清除截圖佇列")};
+function cleanOcrText(text){return String(text||"").replace(/[|]/g,"I").replace(/[，]/g,",").replace(/[：]/g,":").replace(/\u00a0/g," ")}
+function parseNumber(s){if(s==null)return 0;const n=Number(String(s).replace(/,/g,"").replace(/[Oo]/g,"0").replace(/[^\d.\-]/g,""));return Number.isFinite(n)?n:0}
+function normalizeSymbol(s){return String(s||"").toUpperCase().replace(/\s/g,"").replace(/O/g,"0").replace(/I/g,"1").match(/\d{4,6}[A-Z]?/)?.[0]||""}
+function parseBrokerText(raw,fileId,fileName){
+  const text=cleanOcrText(raw),lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  let symbol="",name="",price=0,cost=0,shares=0;
+  const symbolCandidates=[...text.matchAll(/\b(00\d{3}[A-Z]?|0\d{3}[A-Z]?|\d{4}[A-Z]?)\b/g)].map(m=>normalizeSymbol(m[1])).filter(Boolean);
+  symbol=symbolCandidates.find(x=>/^00/.test(x))||symbolCandidates[0]||"";
+  const symbolLine=lines.find(l=>symbol&&l.includes(symbol));
+  if(symbolLine){
+    name=symbolLine.replace(symbol,"").replace(/^[^\u4e00-\u9fff]+/,"").replace(/\s+\d+(?:\.\d+)?\s*$/,"").trim();
+    const nums=symbolLine.match(/\d+(?:\.\d+)?/g)||[];
+    price=parseNumber(nums.at(-1));
+  }
+  const avgMatch=text.match(/均價\s*[\n:：]?\s*([\d,.]+)/);
+  if(avgMatch)cost=parseNumber(avgMatch[1]);
+  const sharesMatch=text.match(/總股數\s*[\n:：]?\s*([\d,]+)/);
+  if(sharesMatch)shares=parseNumber(sharesMatch[1]);
+  if(!price){
+    const pLine=lines.find(l=>symbol&&l.includes(symbol));
+    if(pLine){const nums=pLine.match(/\d+(?:\.\d+)?/g)||[];price=parseNumber(nums.at(-1))}
+  }
+  const trades=[];
+  const dateMatches=[...text.matchAll(/(20\d{2})\s*[\/\-]\s*(\d{1,2})\s*[\/\-]\s*(\d{1,2})/g)];
+  dateMatches.forEach((m,i)=>{
+    const from=m.index+m[0].length,to=dateMatches[i+1]?.index??Math.min(text.length,from+180);
+    const chunk=text.slice(from,to);
+    const nums=(chunk.match(/-?\d[\d,]*(?:\.\d+)?/g)||[]).map(parseNumber).filter(n=>Number.isFinite(n));
+    const tradePrice=nums.find(n=>n>0&&n<100000);
+    const qty=nums.find((n,idx)=>idx>0&&Number.isInteger(n)&&n>0);
+    if(tradePrice&&qty)trades.push({id:uid(),date:`${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`,price:tradePrice,shares:qty});
+  });
+  if(!trades.length&&cost&&shares)trades.push({id:uid(),date:"",price:cost,shares});
+  return {id:uid(),fileId,fileName,symbol,name,category:"ETF",shares,cost,price,dayChange:0,trades,raw:text};
+}
+function setOcrProgress(percent,text){
+  $("ocrProgressWrap").hidden=false;$("ocrProgressBar").style.width=`${Math.max(0,Math.min(100,percent))}%`;$("ocrProgressText").textContent=text;
+}
+$("startOcrBtn").onclick=async()=>{
+  if(!ocrFiles.length){toast("請先選擇券商截圖");return}
+  if(!window.Tesseract){toast("OCR 引擎載入失敗，請確認網路");return}
+  $("startOcrBtn").disabled=true;$("ocrEngineStatus").textContent="辨識中";ocrResults=[];
+  try{
+    for(let i=0;i<ocrFiles.length;i++){
+      const item=ocrFiles[i];item.status="辨識中";renderOcrQueue();
+      setOcrProgress(i/ocrFiles.length*100,`第 ${i+1}/${ocrFiles.length} 張：載入辨識模型`);
+      const result=await Tesseract.recognize(item.file,"chi_tra+eng",{logger:m=>{
+        if(m.status==="recognizing text")setOcrProgress((i+(m.progress||0))/ocrFiles.length*100,`第 ${i+1}/${ocrFiles.length} 張：${Math.round((m.progress||0)*100)}%`);
+      }});
+      ocrResults.push(parseBrokerText(result.data.text,item.id,item.file.name));
+      item.status="完成";renderOcrQueue();renderOcrReview();
+    }
+    setOcrProgress(100,`完成 ${ocrResults.length} 張辨識，請逐筆校對`);
+    $("ocrEngineStatus").textContent="完成";toast("OCR 完成，請校對資料");
+  }catch(err){
+    console.error(err);$("ocrEngineStatus").textContent="失敗";toast("OCR 失敗，請重試或使用文字匯入");
+  }finally{$("startOcrBtn").disabled=false}
+};
+function syncOcrFromDom(){
+  document.querySelectorAll(".ocr-review-card").forEach(card=>{
+    const r=ocrResults.find(x=>x.id===card.dataset.resultId);if(!r)return;
+    r.symbol=card.querySelector("[data-f=symbol]").value.trim().toUpperCase();
+    r.name=card.querySelector("[data-f=name]").value.trim();
+    r.category=card.querySelector("[data-f=category]").value;
+    r.shares=Number(card.querySelector("[data-f=shares]").value||0);
+    r.cost=Number(card.querySelector("[data-f=cost]").value||0);
+    r.price=Number(card.querySelector("[data-f=price]").value||0);
+    r.trades=[...card.querySelectorAll(".ocr-trade-row")].map(row=>({id:row.dataset.tradeId||uid(),date:row.querySelector("[data-t=date]").value,price:Number(row.querySelector("[data-t=price]").value||0),shares:Number(row.querySelector("[data-t=shares]").value||0)})).filter(t=>t.price>0&&t.shares>0);
+  });
+}
+function renderOcrReview(){
+  const el=$("ocrReview");if(!el)return;
+  if(!ocrResults.length){el.innerHTML='<div class="empty">尚無辨識結果</div>';return}
+  el.innerHTML=ocrResults.map(r=>{
+    const duplicate=state.stocks.some(s=>s.symbol===r.symbol);
+    return `<article class="ocr-review-card" data-result-id="${r.id}">
+      <div class="ocr-review-head"><div><strong>${esc(r.fileName)}</strong><small>${r.symbol?`${esc(r.symbol)}｜${esc(r.name)}`:"尚未辨識股票代號"}</small></div>${duplicate?'<span class="duplicate-note">將更新現有持股</span>':""}</div>
+      <div class="ocr-grid">
+        <label>股票代號<input data-f="symbol" class="${r.symbol?"":"invalid"}" value="${esc(r.symbol)}"></label>
+        <label>股票名稱<input data-f="name" value="${esc(r.name)}"></label>
+        <label>分類<select data-f="category">${["ETF","金融","科技","傳產","其他"].map(c=>`<option ${r.category===c?"selected":""}>${c}</option>`).join("")}</select></label>
+        <label>總股數<input data-f="shares" class="${r.shares>0?"":"invalid"}" type="number" value="${r.shares||""}"></label>
+        <label>平均成本<input data-f="cost" class="${r.cost>0?"":"invalid"}" type="number" step="0.001" value="${r.cost||""}"></label>
+        <label>目前價格<input data-f="price" class="${r.price>0?"":"invalid"}" type="number" step="0.001" value="${r.price||""}"></label>
+      </div>
+      <div class="ocr-trades"><strong>成交紀錄</strong>
+        ${r.trades.map(t=>`<div class="ocr-trade-row" data-trade-id="${t.id}"><label>日期<input data-t="date" type="date" value="${esc(t.date)}"></label><label>成交價<input data-t="price" type="number" step="0.001" value="${t.price||""}"></label><label>數量<input data-t="shares" type="number" value="${t.shares||""}"></label><button data-remove-trade="${t.id}">✕</button></div>`).join("")}
+      </div>
+      <div class="ocr-actions"><button class="secondary-pill small" data-add-trade="${r.id}">＋ 成交</button><button class="mini-btn delete" data-remove-result="${r.id}">移除此張</button></div>
+      <details class="ocr-raw"><summary>查看 OCR 原始文字</summary><pre>${esc(r.raw)}</pre></details>
+    </article>`;
+  }).join("");
+  document.querySelectorAll("[data-add-trade]").forEach(b=>b.onclick=()=>{syncOcrFromDom();ocrResults.find(x=>x.id===b.dataset.addTrade)?.trades.push({id:uid(),date:"",price:0,shares:0});renderOcrReview()});
+  document.querySelectorAll("[data-remove-result]").forEach(b=>b.onclick=()=>{ocrResults=ocrResults.filter(x=>x.id!==b.dataset.removeResult);renderOcrReview()});
+  document.querySelectorAll("[data-remove-trade]").forEach(b=>b.onclick=()=>{syncOcrFromDom();ocrResults.forEach(r=>r.trades=r.trades.filter(t=>t.id!==b.dataset.removeTrade));renderOcrReview()});
+}
+
+function cloneData(){return JSON.parse(JSON.stringify({stocks:state.stocks,trades:state.trades,history:state.history,dividends:state.dividends,watchlist:state.watchlist,alerts:state.alerts,targets:state.targets}))}
+function pushImportSnapshot(type,summary){
+  state.importHistory=state.importHistory||[];
+  state.importHistory.unshift({id:uid(),createdAt:new Date().toISOString(),type,summary,snapshot:cloneData()});
+  state.importHistory=state.importHistory.slice(0,10);
+}
+function renderImportHistory(){
+  const el=$("importHistoryList");if(!el)return;
+  const list=state.importHistory||[];
+  el.innerHTML=list.length?list.map(x=>`<article class="import-history-card"><div class="import-history-head"><strong>${esc(x.type)}</strong><span>${new Date(x.createdAt).toLocaleString("zh-TW")}</span></div><small>${esc(x.summary||"")}</small><div class="holding-actions"><button class="mini-btn" data-restore-import="${x.id}">回復</button><button class="mini-btn delete" data-delete-import="${x.id}">刪除紀錄</button></div></article>`).join(""):'<div class="empty">尚無匯入批次紀錄</div>';
+  document.querySelectorAll("[data-restore-import]").forEach(b=>b.onclick=()=>restoreImportSnapshot(b.dataset.restoreImport));
+  document.querySelectorAll("[data-delete-import]").forEach(b=>b.onclick=()=>{state.importHistory=state.importHistory.filter(x=>x.id!==b.dataset.deleteImport);save()});
+}
+function restoreImportSnapshot(id){
+  const rec=(state.importHistory||[]).find(x=>x.id===id);if(!rec?.snapshot)return;
+  if(!confirm("確定回復到這次匯入前？目前資料會被覆蓋。"))return;
+  const keep=state.importHistory;
+  Object.assign(state,JSON.parse(JSON.stringify(rec.snapshot)));
+  state.importHistory=keep;save();toast("已回復匯入前狀態");
+}
+$("rollbackLastImportBtn").onclick=()=>{const x=(state.importHistory||[])[0];x?restoreImportSnapshot(x.id):toast("沒有可回復的匯入紀錄")};
+
+$("importOcrBtn").onclick=()=>{
+  syncOcrFromDom();
+  const invalid=ocrResults.filter(r=>!r.symbol||r.shares<=0||r.cost<=0||r.price<=0);
+  if(invalid.length){toast(`有 ${invalid.length} 筆必要欄位未完成`);renderOcrReview();return}
+  const mode=document.querySelector('input[name="ocrImportMode"]:checked')?.value||"merge";
+  pushImportSnapshot("OCR 匯入",`${ocrResults.length} 張截圖，${mode==="merge"?"合併更新":"覆蓋同代號"}`);
+  let stockCount=0,tradeCount=0,skipped=0;
+  for(const r of ocrResults){
+    let stock=state.stocks.find(s=>s.symbol===r.symbol);
+    const base={symbol:r.symbol,name:r.name,category:r.category,shares:r.shares,cost:r.cost,price:r.price,dayChange:r.dayChange||0};
+    if(stock)Object.assign(stock,base);
+    else{stock={id:uid(),...base,favorite:false,reason:"",risk:"",buyAlert:0,takeProfit:0,stopLoss:0};state.stocks.push(stock)}
+    stockCount++;
+    for(const t of r.trades){
+      const duplicate=state.trades.some(x=>x.symbol===r.symbol&&x.type==="buy"&&x.date===t.date&&Math.abs(Number(x.price)-t.price)<.0001&&Number(x.shares)===t.shares);
+      if(duplicate){skipped++;continue}
+      state.trades.push({id:uid(),date:t.date,symbol:r.symbol,name:r.name,category:r.category,type:"buy",shares:t.shares,price:t.price,fee:0,note:t.date?"券商截圖 OCR 匯入":"券商截圖 OCR 匯入（成交日未填）",realized:0});tradeCount++;
+    }
+  }
+  save();toast(`已寫入 ${stockCount} 檔、${tradeCount} 筆成交，略過 ${skipped} 筆重複`);
+};
+
 $("analyzeImportBtn").onclick=()=>{pending=$("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{const c=line.split(/\t|,/).map(x=>x.trim());return{symbol:(c[0]||"").toUpperCase(),name:c[1]||"",category:c[2]||"其他",shares:Number(c[3]),cost:Number(c[4]),price:Number(c[5]||0),dayChange:Number(c[6]||0)}});renderPreview();toast(`已分析 ${pending.length} 筆`)};
 function renderPreview(){$("importPreview").innerHTML=pending.length?pending.map(x=>`<div class="preview-item"><strong>${esc(x.symbol)}｜${esc(x.name)}</strong><div class="stock-name">${esc(x.category)}｜${num(x.shares)} 股｜均價 ${num(x.cost)}｜現價 ${num(x.price)}</div></div>`).join(""):'<div class="empty">尚無預覽資料</div>'}
 $("approveImportBtn").onclick=()=>{for(const x of pending){if(!x.symbol||!Number.isFinite(x.shares)||!Number.isFinite(x.cost))continue;const old=state.stocks.find(s=>s.symbol===x.symbol),item={id:old?.id||uid(),...x,favorite:old?.favorite||false,reason:old?.reason||"",risk:old?.risk||""};if(old)Object.assign(old,item);else state.stocks.push(item)}pending=[];$("bulkText").value="";save();toast("匯入完成")};
@@ -168,10 +323,50 @@ document.querySelectorAll(".segment[data-category]").forEach(c=>c.onclick=()=>{d
 $("searchInput").oninput=e=>{currentSearch=e.target.value.trim().toLowerCase();render()};$("sortSelect").onchange=e=>{currentSort=e.target.value;render()};$("watchSearch").oninput=e=>{watchSearch=e.target.value.trim().toLowerCase();renderWatchlist()};
 $("refreshBtn").onclick=async()=>{if(!state.stocks.length&&!state.watchlist.length){toast("目前沒有持股或自選");return}const b=$("refreshBtn");b.disabled=true;b.textContent="…";let ok=0;for(const s of [...state.stocks,...state.watchlist]){for(const m of["tse","otc"]){try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${m}_${s.symbol}.tw`,{cache:"no-store"});const j=await r.json(),row=j?.msgArray?.[0];if(row){const p=Number(row.z||row.y);if(p>0){s.price=p;s.name=s.name||row.n;ok++;break}}}catch{}}}save();b.disabled=false;b.textContent="↻";const hit=allAlerts(allStocks()).filter(a=>a.triggered).length;toast(`已更新 ${ok} 檔，${hit} 個提醒達標`)};
 
+
+function computeHoldingsFromTrades(){
+  const map=new Map();
+  [...state.trades].sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).forEach(t=>{
+    if(!map.has(t.symbol))map.set(t.symbol,{symbol:t.symbol,name:t.name||"",category:t.category||"其他",shares:0,cost:0,price:state.stocks.find(s=>s.symbol===t.symbol)?.price||t.price});
+    const h=map.get(t.symbol);
+    if(t.type==="buy"){const old=h.shares*h.cost,add=Number(t.shares)*Number(t.price)+Number(t.fee||0);h.cost=(old+add)/(h.shares+Number(t.shares));h.shares+=Number(t.shares)}
+    else h.shares=Math.max(0,h.shares-Number(t.shares));
+  });
+  return [...map.values()].filter(x=>x.shares>0);
+}
+$("reconcileBtn").onclick=()=>{
+  const rebuilt=computeHoldingsFromTrades(),symbols=new Set([...state.stocks.map(x=>x.symbol),...rebuilt.map(x=>x.symbol)]),issues=[];
+  symbols.forEach(symbol=>{
+    const a=state.stocks.find(x=>x.symbol===symbol),b=rebuilt.find(x=>x.symbol===symbol);
+    if(!a)issues.push(`${symbol}：交易有部位，但庫存不存在`);
+    else if(!b)issues.push(`${symbol}：庫存存在，但沒有可重建交易`);
+    else{
+      if(Math.abs(Number(a.shares)-Number(b.shares))>.0001)issues.push(`${symbol}：摘要 ${num(a.shares)} 股，交易重建 ${num(b.shares)} 股`);
+      if(Math.abs(Number(a.cost)-Number(b.cost))>.01)issues.push(`${symbol}：摘要均價 ${num(a.cost)}，交易重建 ${num(b.cost)}`);
+    }
+  });
+  alert(issues.length?`發現 ${issues.length} 項差異：\n\n${issues.slice(0,20).join("\n")}`:"庫存摘要與交易紀錄一致");
+};
+$("rebuildFromTradesBtn").onclick=()=>{
+  const rebuilt=computeHoldingsFromTrades();if(!rebuilt.length){toast("沒有足夠交易紀錄");return}
+  if(!confirm(`依 ${state.trades.length} 筆交易重建 ${rebuilt.length} 檔庫存？`))return;
+  pushImportSnapshot("交易重建庫存",`${state.trades.length} 筆交易`);
+  const old=new Map(state.stocks.map(x=>[x.symbol,x]));
+  state.stocks=rebuilt.map(r=>({id:old.get(r.symbol)?.id||uid(),symbol:r.symbol,name:r.name,category:r.category,shares:r.shares,cost:r.cost,price:r.price,dayChange:old.get(r.symbol)?.dayChange||0,favorite:old.get(r.symbol)?.favorite||false,reason:old.get(r.symbol)?.reason||"",risk:old.get(r.symbol)?.risk||"",buyAlert:old.get(r.symbol)?.buyAlert||0,takeProfit:old.get(r.symbol)?.takeProfit||0,stopLoss:old.get(r.symbol)?.stopLoss||0}));
+  save();toast("已依交易紀錄重建庫存");
+};
+
 function download(content,name,type){const a=document.createElement("a"),blob=new Blob(["\ufeff"+content],{type});a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
-$("exportBtn").onclick=()=>download(JSON.stringify({version:"3.3",...state,exportedAt:new Date().toISOString()},null,2),`alpha-one-${new Date().toISOString().slice(0,10)}.json`,"application/json");
+$("exportBtn").onclick=()=>download(JSON.stringify({version:"4.1",...state,exportedAt:new Date().toISOString()},null,2),`alpha-one-${new Date().toISOString().slice(0,10)}.json`,"application/json");
 $("exportCsvBtn").onclick=()=>download(["股票代號,股票名稱,分類,股數,平均成本,目前價格,今日漲跌幅",...state.stocks.map(s=>[s.symbol,s.name,s.category,s.shares,s.cost,s.price,s.dayChange].join(","))].join("\n"),"alpha-one-holdings.csv","text/csv");
-$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=async e=>{try{state=normalize(JSON.parse(await e.target.files[0].text()));save();toast("匯入完成")}catch{toast("備份格式錯誤")}e.target.value=""};
+$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=async e=>{try{
+  const previous=cloneData();
+  const imported=normalize(JSON.parse(await e.target.files[0].text()));
+  imported.importHistory=state.importHistory||[];
+  imported.importHistory.unshift({id:uid(),createdAt:new Date().toISOString(),type:"備份匯入",summary:e.target.files[0].name||"JSON 備份",snapshot:previous});
+  imported.importHistory=imported.importHistory.slice(0,10);
+  state=imported;save();toast("匯入完成")
+}catch{toast("備份格式錯誤")}e.target.value=""};
 $("sampleBtn").onclick=()=>{state={stocks:[{id:uid(),symbol:"00400A",name:"主動國泰動能高息",category:"ETF",shares:3000,cost:13.50,price:13.41,dayChange:-.59,favorite:true,reason:"作為主動式高股息 ETF 部位，分批建立。",risk:"跌破 12.8 或策略失效時重新評估。"},{id:uid(),symbol:"0050",name:"元大台灣50",category:"ETF",shares:2000,cost:174.6,price:188.2,dayChange:1.15,favorite:true,reason:"核心市場部位",risk:"高檔避免追價"},{id:uid(),symbol:"2882",name:"國泰金",category:"金融",shares:5000,cost:54.8,price:61.2,dayChange:-.49,favorite:false,reason:"金融股配置",risk:"留意利率與景氣"}],trades:[{id:uid(),date:"2026-05-14",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.91,fee:0,note:"首次建立部位",realized:0},{id:uid(),date:"2026-05-15",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:1000,price:13.50,fee:0,note:"第二次加碼",realized:0},{id:uid(),date:"2026-05-19",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:12.78,fee:0,note:"逢低加碼",realized:0},{id:uid(),date:"2026-07-17",symbol:"00400A",name:"主動國泰動能高息",category:"ETF",type:"buy",shares:500,price:13.31,fee:0,note:"分批加碼",realized:0}],history:[],dividends:[],alerts:[{id:uid(),symbol:"2330",name:"台積電",price:1180,type:"below",target:1100,note:"到價分批建立"}],targets:{ETF:45,金融:20,科技:25,傳產:5,其他:5},watchlist:[{id:uid(),symbol:"2330",name:"台積電",category:"科技",price:1180,target:1100,reason:"等待拉回再分批建立"},{id:uid(),symbol:"2881",name:"富邦金",category:"金融",price:92.5,target:88,reason:"觀察金融股回檔買點"}]};save();toast("示範資料已載入")};
-$("clearBtn").onclick=()=>{if(confirm("確定清空全部資料？")){state={stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}};save()}};
+$("clearBtn").onclick=()=>{if(confirm("確定清空全部資料？")){state={stocks:[],trades:[],history:[],dividends:[],watchlist:[],alerts:[],importHistory:[],targets:{ETF:40,金融:20,科技:25,傳產:10,其他:5}};save()}};
 render();
